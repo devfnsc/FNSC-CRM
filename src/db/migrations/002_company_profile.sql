@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS company_profile (
+  id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  business_name VARCHAR(120) NOT NULL,
+  trade_name VARCHAR(120) NULL,
+  contact_email VARCHAR(254) NULL,
+  phone VARCHAR(32) NULL,
+  website VARCHAR(255) NULL,
+  timezone VARCHAR(64) NOT NULL DEFAULT 'America/Sao_Paulo',
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  CONSTRAINT company_profile_singleton CHECK (id = 1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

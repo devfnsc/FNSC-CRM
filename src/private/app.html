@@ -1,13 +1,45 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FNSC-CRM</title></head>
-<body>
-  <main>
-    <h1>FNSC-CRM</h1>
-    <p>Área autenticada inicial. Os módulos do CRM serão construídos a partir do backlog aprovado.</p>
-    <button id="logout" type="button">Sair</button>
-    <p id="message" role="status"></p>
-  </main>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FNSC-CRM | Área administrativa</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/company-profile.js" defer></script>
   <script src="/app.js" defer></script>
+</head>
+<body class="app-page">
+  <header class="app-header">
+    <a class="brand" href="/app">FNSC-CRM</a>
+    <button id="logout" type="button">Sair</button>
+  </header>
+  <main class="app-content">
+    <section class="panel" aria-labelledby="company-title">
+      <p class="eyebrow">Configurações</p>
+      <h1 id="company-title">Perfil da empresa</h1>
+      <p class="muted">Esses dados poderão aparecer nas propostas e nos contratos.</p>
+      <form id="company-form">
+        <label for="businessName">Nome da empresa <span aria-hidden="true">*</span></label>
+        <input id="businessName" name="businessName" maxlength="120" autocomplete="organization" required>
+        <label for="tradeName">Nome fantasia</label>
+        <input id="tradeName" name="tradeName" maxlength="120">
+        <label for="contactEmail">E-mail de contato</label>
+        <input id="contactEmail" name="contactEmail" type="email" maxlength="254" autocomplete="email">
+        <label for="phone">Telefone</label>
+        <input id="phone" name="phone" type="tel" maxlength="32" autocomplete="tel">
+        <label for="website">Site</label>
+        <input id="website" name="website" type="url" maxlength="255" placeholder="https://">
+        <label for="timezone">Fuso horário</label>
+        <select id="timezone" name="timezone">
+          <option value="America/Sao_Paulo">Brasília (America/Sao_Paulo)</option>
+          <option value="America/Manaus">Manaus</option>
+          <option value="America/Rio_Branco">Rio Branco</option>
+          <option value="UTC">UTC</option>
+        </select>
+        <button id="save-company" type="submit">Salvar perfil</button>
+        <p id="company-message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
 </body>
 </html>
