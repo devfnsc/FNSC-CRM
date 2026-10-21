@@ -1,6 +1,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const session = require("express-session");
+const bcrypt = require("bcryptjs");
 const { createApp } = require("../src/server");
 
 test("health endpoint returns a healthy response without exposing secrets", async () => {
@@ -63,6 +64,48 @@ test("login rejects a request from a different origin before querying the databa
     });
     assert.equal(response.status, 403);
     assert.equal(queried, false);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("valid login creates a session that can access the current-user endpoint", async () => {
+  const passwordHash = await bcrypt.hash("correct-horse-battery-93", 4);
+  const pool = {
+    execute: async (query) => {
+      if (query.includes("password_hash")) {
+        return [[{ id: 7, email: "admin@example.com", password_hash: passwordHash }], []];
+      }
+      return [[{ id: 7, email: "admin@example.com" }], []];
+    }
+  };
+  const app = createApp({
+    pool,
+    sessionStore: new session.MemoryStore(),
+    env: {
+      APP_ORIGIN: "http://localhost:3000",
+      SESSION_SECRET: "test-only-session-secret-with-32-bytes",
+      NODE_ENV: "test"
+    }
+  });
+  const server = app.listen(0);
+  try {
+    const baseUrl = "http://127.0.0.1:" + server.address().port;
+    const login = await fetch(baseUrl + "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Origin": "http://localhost:3000" },
+      body: JSON.stringify({ email: "admin@example.com", password: "correct-horse-battery-93" })
+    });
+    assert.equal(login.status, 200);
+    const cookie = login.headers.get("set-cookie").split(";")[0];
+
+    const currentUser = await fetch(baseUrl + "/api/auth/me", {
+      headers: { "Cookie": cookie }
+    });
+    assert.equal(currentUser.status, 200);
+    assert.deepEqual(await currentUser.json(), {
+      user: { id: 7, email: "admin@example.com" }
+    });
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
