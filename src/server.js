@@ -7,6 +7,7 @@ const MySQLStore = require("express-mysql-session")(session);
 const helmet = require("helmet");
 const { createPool } = require("./config/database");
 const { createAuthRouter } = require("./routes/auth");
+const { createCompanyRouter } = require("./routes/company");
 const { requireAuth } = require("./middleware/auth");
 
 function createApp({ pool, sessionStore, env = process.env }) {
@@ -36,6 +37,7 @@ function createApp({ pool, sessionStore, env = process.env }) {
 
   app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
   app.use("/api/auth", createAuthRouter({ pool, appOrigin: env.APP_ORIGIN }));
+  app.use("/api/company", createCompanyRouter({ pool, appOrigin: env.APP_ORIGIN }));
   app.use(express.static(path.join(__dirname, "public"), { index: "index.html" }));
   app.get("/app", requireAuth(pool), (_req, res) => {
     res.sendFile(path.join(__dirname, "private", "app.html"));

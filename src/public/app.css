@@ -1,0 +1,20 @@
+:root { font-family: system-ui, sans-serif; color: #172033; background: #f2f5fa; }
+* { box-sizing: border-box; }
+body { min-height: 100vh; margin: 0; }
+button, input, select { font: inherit; }
+button { padding: .7rem 1rem; border: 0; border-radius: .5rem; background: #244b9b; color: white; font-weight: 700; cursor: pointer; }
+button:disabled { opacity: .65; cursor: wait; }
+.app-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem max(1rem, calc((100vw - 70rem) / 2)); background: white; border-bottom: 1px solid #e0e6ef; }
+.brand { color: #244b9b; font-weight: 800; text-decoration: none; }
+.app-content { width: min(100% - 2rem, 44rem); margin: 2rem auto; }
+.panel { padding: clamp(1.25rem, 4vw, 2rem); border: 1px solid #e0e6ef; border-radius: 1rem; background: white; box-shadow: 0 1rem 3rem #1720330b; }
+.eyebrow { margin: 0 0 .5rem; color: #3159ad; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+h1 { margin: 0 0 .5rem; font-size: 1.65rem; }
+.muted { margin: 0; color: #65718a; }
+form { display: grid; gap: .55rem; margin-top: 1.5rem; }
+label { margin-top: .45rem; font-weight: 600; }
+input, select { width: 100%; padding: .7rem; border: 1px solid #cbd4e1; border-radius: .5rem; background: white; }
+#save-company { margin-top: .8rem; }
+#company-message { min-height: 1.25rem; margin: .2rem 0 0; }
+#company-message[data-state="error"] { color: #a22; }
+#company-message[data-state="success"] { color: #18663a; }

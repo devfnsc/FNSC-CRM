@@ -12,9 +12,10 @@
 3. Gere um segredo de sessão com `node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))"` e coloque o resultado em `SESSION_SECRET`.
 4. Crie o banco e um usuário MySQL dedicado, com permissões somente no banco do CRM.
 5. Execute o esquema inicial: `mysql -u SEU_USUARIO -p fnsc_crm < src/db/schema.sql`.
-6. Crie a conta inicial: `node scripts/create-admin.js`.
-7. Inicie o servidor com `npm run dev` e abra `http://localhost:3000`.
-8. Rode os testes com `npm test`.
+6. Execute cada migração ainda não aplicada, começando por `src/db/migrations/002_company_profile.sql`.
+7. Crie a conta inicial: `node scripts/create-admin.js`.
+8. Inicie o servidor com `npm run dev` e abra `http://localhost:3000`.
+9. Rode os testes com `npm test`.
 
 O armazenamento de sessões usa a tabela `sessions`, criada pelo driver quando ele inicia. O usuário do banco precisa poder criar essa tabela no banco do CRM. A conta inicial é provisionada pelo script local; não existe cadastro público.
 
