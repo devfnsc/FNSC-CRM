@@ -19,7 +19,7 @@ function createAuthRouter({ pool, appOrigin }) {
     try {
       const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
       const password = typeof req.body.password === "string" ? req.body.password : "";
-      if (!email || !password || email.length > 254 || password.length > 72) {
+      if (!email || !password || email.length > 254 || Buffer.byteLength(password, "utf8") > 72) {
         return res.status(400).json({ error: "invalid_credentials" });
       }
 
