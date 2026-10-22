@@ -49,3 +49,12 @@ td button { white-space: nowrap; }
 
 #service-message { color: #18663a; }
 #service-list-message[data-state="error"] { color: #a22; }
+
+.proposal-items { display: grid; gap: .75rem; min-width: 0; padding: 1rem; border: 1px solid #cbd4e1; border-radius: .6rem; }
+.proposal-items legend { padding: 0 .35rem; font-weight: 700; }
+.proposal-item-row { display: grid; grid-template-columns: minmax(12rem, 2fr) minmax(5rem, .6fr) minmax(9rem, 1fr) auto; align-items: center; gap: .6rem; }
+.proposal-item-row button { margin: 0; background: #65718a; }
+#proposal-message, #proposal-list-message { color: #18663a; }
+#proposal-list-message[data-state="error"] { color: #a22; }
+#proposal-total { margin: .25rem 0; font-weight: 800; }
+@media (max-width: 42rem) { .proposal-item-row { grid-template-columns: 1fr 1fr; } }

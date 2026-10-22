@@ -8,6 +8,7 @@
   <script src="/company-profile.js" defer></script>
   <script src="/customers.js" defer></script>
   <script src="/services.js" defer></script>
+  <script src="/proposals.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body class="app-page">
@@ -89,6 +90,39 @@
         <table>
           <thead><tr><th>Serviço</th><th>Descrição</th><th>Valor de referência</th><th>Ação</th></tr></thead>
           <tbody id="service-list"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="proposal-title">
+      <p class="eyebrow">Comercial</p>
+      <h2 id="proposal-title">Nova proposta</h2>
+      <p class="muted">Crie um rascunho com serviços e valores negociados. A proposta ainda não é enviada ao cliente.</p>
+      <form id="proposal-form">
+        <label for="proposal-customer">Cliente <span aria-hidden="true">*</span></label>
+        <select id="proposal-customer" name="customerId" required>
+          <option value="">Carregando clientes...</option>
+        </select>
+        <label for="proposal-name">Título da proposta <span aria-hidden="true">*</span></label>
+        <input id="proposal-name" name="title" maxlength="160" required>
+        <label for="proposal-valid-until">Válida até</label>
+        <input id="proposal-valid-until" name="validUntil" type="date">
+        <label for="proposal-notes">Observações comerciais</label>
+        <textarea id="proposal-notes" name="notes" maxlength="2000" rows="3"></textarea>
+        <fieldset class="proposal-items">
+          <legend>Serviços e valores</legend>
+          <div id="proposal-item-list"></div>
+          <button id="add-proposal-item" type="button">Adicionar serviço</button>
+        </fieldset>
+        <p id="proposal-total" role="status">Total: R$ 0,00</p>
+        <button id="save-proposal" type="submit">Salvar rascunho</button>
+        <p id="proposal-message" role="status" aria-live="polite"></p>
+      </form>
+      <h3>Propostas recentes</h3>
+      <p id="proposal-list-message" role="status" aria-live="polite"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cliente</th><th>Proposta</th><th>Validade</th><th>Status</th><th>Total</th></tr></thead>
+          <tbody id="proposal-list"></tbody>
         </table>
       </div>
     </section>
