@@ -1,26 +1,37 @@
 # FNSC-CRM
 
-CRM web application for an independent marketing and onboarding business. This repository will host the application, automated tests, and DevOps configuration for the academic MVP and its continued evolution.
+CRM web para uma empresa independente de marketing e onboarding. O MVP reúne frontend em HTML/CSS/JavaScript puro, API em Node.js/Express e banco MySQL.
 
-## Initial scope
+## O que já está implementado
 
-- Private administrator access
-- Customer records and service catalog
-- Proposals and PDF export
-- Contracts with revision history
-- Onboarding checklist and client activity history
-- Follow-up tasks
-- Manual income/expense records and monthly summaries
+- Acesso administrativo e perfil da empresa.
+- Cadastro, consulta, edição e arquivamento reversível de clientes.
+- Catálogo de serviços com edição.
+- Propostas em rascunho, edição, histórico de status e versão imprimível para salvar em PDF pelo navegador.
+- Contratos gerados a partir de propostas aceitas, com revisões, impressão e registro manual de status.
+- Lançamentos de entradas e saídas com consulta mensal.
+- Checklist de onboarding vinculado a contratos e histórico de interações/follow-ups por cliente.
 
-## Planned technology
+As funcionalidades F01–F18 estão agrupadas na branch de integração. Os testes automatizados mais recentes passaram no GitHub Actions. Isso valida a suíte automatizada; não significa que o sistema já esteja publicado ou conectado a um banco de produção.
 
-- Frontend: semantic HTML, CSS, and vanilla JavaScript
-- Backend: Node.js and Express, exposed as a JSON API
-- Database: MySQL
-- Version control and CI: GitHub and GitHub Actions
+## Rodar localmente
 
-Hosting and production deployment will be documented after we verify the service limits, security requirements, and data-privacy implications. Never commit credentials, `.env` files, or real customer/financial data.
+Requisitos: Node.js 20+ e MySQL 8.
 
-## Development status
+Siga o passo a passo em [docs/development.md](docs/development.md) para configurar o banco, aplicar as migrações, criar o usuário administrador e iniciar o servidor em `http://localhost:3000`.
 
-The repository is being initialized. The first implementation milestone is F01 (administrator authentication), followed by the customer and service workflows from the approved Trello backlog.
+Comandos principais:
+
+```bash
+npm install
+npm run dev
+npm test
+```
+
+## CI, publicação e segurança
+
+O GitHub Actions instala as dependências e executa os testes em pushes para `main` e branches `feature/**`. Ainda não há deploy automático nem endereço público do CRM: a configuração de hospedagem, banco remoto, segredos, HTTPS e backups precisa ser feita antes de usar dados reais.
+
+Não existe cadastro público. O status “assinado” de um contrato é um registro manual, não uma assinatura digital. A impressão de propostas/contratos usa a função de impressão do navegador. Este MVP não substitui um sistema contábil ou orientação jurídica.
+
+Nunca publique arquivos `.env`, credenciais ou dados pessoais/financeiros de clientes.
