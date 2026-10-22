@@ -18,7 +18,7 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
       { service_name: "Anúncios digitais", description: "Mídia paga.", quantity: 1, unit_price: "50.25", line_total: "50.25" }
     ],
     contract: null,
-    items: []
+    items: [], revisions: []
   };
   const connection = {
     beginTransaction: async () => {},
@@ -42,6 +42,8 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
         };
         return [{ insertId: state.contract.id }, []];
       }
+      if (query.includes("INSERT INTO contract_revisions")) { state.revisions.push(values); return [{ insertId: state.revisions.length }, []]; }
+      if (query.includes("SELECT COALESCE(MAX(revision_number)")) return [[{ latest_revision: state.revisions.length }], []];
       if (query.includes("INSERT INTO contract_items")) {
         state.items.push(values);
         return [{ insertId: state.items.length }, []];
@@ -64,6 +66,10 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
       if (query.includes("FROM contracts WHERE id")) {
         return [state.contract && String(state.contract.id) === String(values[0]) ? [{ ...state.contract }] : [], []];
       }
+      if (query.includes("FROM contract_revisions")) return [state.revisions.map((v, i) => ({
+        revision_number: i + 1, title: v[2], effective_date: v[3], end_date: v[4], payment_terms: v[5],
+        clauses: v[6], total: v[7], created_at: "2026-10-22", created_by_email: "admin@example.com"
+      })), []];
       if (query.includes("FROM contract_items WHERE contract_id")) {
         return [state.items.map((item) => ({
           service_name: item[1], description: item[2], quantity: item[3], unit_price: item[4], line_total: item[5]
@@ -114,6 +120,7 @@ test("accepted proposal creates an editable, print-ready contract draft", async 
     assert.equal(created.status, 201);
     assert.equal((await created.json()).contract.status, "draft");
     assert.equal(state.items.length, 2);
+    assert.equal(state.revisions.length, 1);
 
     const duplicate = await fetch(baseUrl + "/api/contracts/from-proposal/3", {
       method: "POST",
@@ -145,6 +152,20 @@ test("accepted proposal creates an editable, print-ready contract draft", async 
     });
     assert.equal(updated.status, 200);
     assert.equal(state.contract.clauses.includes("<script>"), true);
+    assert.equal(state.revisions.length, 2);
+    assert.equal(state.revisions[1][6].includes("<script>"), true);
+    const historyResponse = await fetch(baseUrl + "/api/contracts/9", { headers: { Cookie: cookie } });
+    const history = (await historyResponse.json()).contract.revisions;
+    assert.equal(history.length, 2);
+    assert.equal(history[0].title, "Plano de marketing");
+    assert.equal(history[1].title, "Contrato de serviços");
+    const noOp = await fetch(baseUrl + "/api/contracts/9", {
+      method: "PUT", headers: { "Content-Type": "application/json", Origin: "http://localhost:3000", Cookie: cookie },
+      body: JSON.stringify({ title: "Contrato de serviços", effectiveDate: "2026-11-01", endDate: "2027-10-31",
+        paymentTerms: "50% no início.", clauses: "Escopo aprovado. Texto <script> permanece como texto." })
+    });
+    assert.equal(noOp.status, 200);
+    assert.equal(state.revisions.length, 2);
 
     const printable = await fetch(baseUrl + "/api/contracts/9/print", { headers: { Cookie: cookie } });
     assert.equal(printable.status, 200);
