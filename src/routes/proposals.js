@@ -150,7 +150,7 @@ function renderPrintDocument(proposal) {
   </style>
 </head>
 <body>
-  <div class="toolbar"><button type="button" onclick="window.print()">Imprimir / salvar como PDF</button></div>
+  <div class="toolbar"><button id="print-document" type="button">Imprimir / salvar como PDF</button></div>
   <header>
     <div><p class="muted">FNSC-CRM · proposta comercial</p><h1>${escapeHtml(proposal.title)}</h1><p class="status">${escapeHtml(status)}</p></div>
     <div><p><strong>Proposta #${escapeHtml(proposal.id)}</strong></p><p>Emitida em ${escapeHtml(createdDate)}</p><p>Válida até: ${escapeHtml(proposal.validUntil || "não informada")}</p></div>
