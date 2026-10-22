@@ -9,6 +9,84 @@ const proposalListMessage = document.querySelector("#proposal-list-message");
 
 let services = [];
 
+const proposalDetails = document.querySelector("#proposal-details");
+const proposalDetailsMessage = document.querySelector("#proposal-details-message");
+const proposalDetailsContent = document.querySelector("#proposal-details-content");
+
+function addProposalAction(row, proposal) {
+  const cell = document.createElement("td");
+  const detailsButton = document.createElement("button");
+  detailsButton.type = "button";
+  detailsButton.textContent = "Detalhes";
+  detailsButton.addEventListener("click", () => showProposalDetails(proposal.id));
+  const printLink = document.createElement("a");
+  printLink.href = "/api/proposals/" + encodeURIComponent(proposal.id) + "/print";
+  printLink.target = "_blank";
+  printLink.rel = "noopener";
+  printLink.textContent = "PDF / imprimir";
+  printLink.className = "proposal-print-link";
+  cell.append(detailsButton, document.createTextNode(" "), printLink);
+  row.append(cell);
+}
+
+function appendDetailText(parent, tagName, text, className) {
+  const element = document.createElement(tagName);
+  element.textContent = text || "—";
+  if (className) element.className = className;
+  parent.append(element);
+  return element;
+}
+
+async function showProposalDetails(id) {
+  proposalDetails.hidden = false;
+  proposalDetailsMessage.textContent = "Carregando detalhes...";
+  proposalDetailsContent.replaceChildren();
+  try {
+    const response = await fetch("/api/proposals/" + encodeURIComponent(id), { credentials: "same-origin" });
+    if (response.status === 401) {
+      window.location.assign("/");
+      return;
+    }
+    if (response.status === 404) throw new Error("not_found");
+    if (!response.ok) throw new Error("details_failed");
+    const { proposal } = await response.json();
+    proposalDetailsMessage.textContent = "";
+    appendDetailText(proposalDetailsContent, "h4", proposal.title);
+    appendDetailText(proposalDetailsContent, "p",
+      proposal.customer.name + (proposal.customer.companyName ? " — " + proposal.customer.companyName : ""));
+    appendDetailText(proposalDetailsContent, "p",
+      "Status: " + (proposal.status === "draft" ? "Rascunho" : proposal.status) +
+      " · Validade: " + (proposal.validUntil || "não informada") +
+      " · Total: " + formatMoney(proposal.total));
+    const table = document.createElement("table");
+    table.innerHTML = "<thead><tr><th>Serviço</th><th>Quantidade</th><th>Unitário</th><th>Subtotal</th></tr></thead>";
+    const body = document.createElement("tbody");
+    for (const item of proposal.items) {
+      const row = document.createElement("tr");
+      addProposalCell(row, item.serviceName);
+      addProposalCell(row, item.quantity);
+      addProposalCell(row, formatMoney(item.unitPrice));
+      addProposalCell(row, formatMoney(item.lineTotal));
+      body.append(row);
+    }
+    table.append(body);
+    proposalDetailsContent.append(table);
+    if (proposal.notes) appendDetailText(proposalDetailsContent, "p", "Observações: " + proposal.notes);
+    const link = document.createElement("a");
+    link.href = "/api/proposals/" + encodeURIComponent(proposal.id) + "/print";
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = "Abrir versão para imprimir / salvar como PDF";
+    link.className = "proposal-print-link";
+    proposalDetailsContent.append(link);
+  } catch (_error) {
+    proposalDetailsMessage.textContent = "Não foi possível carregar os detalhes da proposta.";
+    proposalDetailsMessage.dataset.state = "error";
+  }
+}
+
+
+
 function formatMoney(value) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 }
@@ -127,6 +205,7 @@ async function loadProposals() {
       addProposalCell(row, proposal.validUntil || "Sem prazo");
       addProposalCell(row, proposal.status === "draft" ? "Rascunho" : proposal.status);
       addProposalCell(row, formatMoney(proposal.total));
+      addProposalAction(row, proposal);
       proposalList.append(row);
     }
     proposalListMessage.textContent = proposals.length ? "" : "Nenhuma proposta cadastrada.";
