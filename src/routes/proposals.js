@@ -70,7 +70,7 @@ function escapeHtml(value) {
 function formatMoney(value) {
   const [whole = "0", fraction = ""] = String(value ?? "0.00").split(".");
   const normalizedFraction = (fraction + "00").slice(0, 2);
-  return "R$ " + whole.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ".") + "," + normalizedFraction;
+  return "R$ " + whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + normalizedFraction;
 }
 
 async function loadProposal(pool, id) {
@@ -112,6 +112,7 @@ async function loadProposal(pool, id) {
 
 function renderPrintDocument(proposal) {
   const status = proposal.status === "draft" ? "Rascunho — não enviada" : proposal.status;
+  const createdDate = proposal.createdAt instanceof Date ? proposal.createdAt.toISOString().slice(0, 10) : String(proposal.createdAt).slice(0, 10);
   const items = proposal.items.map((item) => `
     <tr>
       <td><strong>${escapeHtml(item.serviceName)}</strong>${item.description ? `<br><span>${escapeHtml(item.description)}</span>` : ""}</td>
@@ -152,7 +153,7 @@ function renderPrintDocument(proposal) {
   <div class="toolbar"><button type="button" onclick="window.print()">Imprimir / salvar como PDF</button></div>
   <header>
     <div><p class="muted">FNSC-CRM · proposta comercial</p><h1>${escapeHtml(proposal.title)}</h1><p class="status">${escapeHtml(status)}</p></div>
-    <div><p><strong>Proposta #${escapeHtml(proposal.id)}</strong></p><p>Emitida em ${escapeHtml(String(proposal.createdAt).slice(0, 10))}</p><p>Válida até: ${escapeHtml(proposal.validUntil || "não informada")}</p></div>
+    <div><p><strong>Proposta #${escapeHtml(proposal.id)}</strong></p><p>Emitida em ${escapeHtml(createdDate)}</p><p>Válida até: ${escapeHtml(proposal.validUntil || "não informada")}</p></div>
   </header>
   <section><h2>Cliente</h2><p><strong>${escapeHtml(proposal.customer.name)}</strong></p>
     ${proposal.customer.companyName ? `<p>${escapeHtml(proposal.customer.companyName)}</p>` : ""}
@@ -200,7 +201,7 @@ function createProposalsRouter({ pool, appOrigin }) {
 
   router.get("/:id/print", authenticated, async (req, res, next) => {
     try {
-      if (!/^[1-9]\\d{0,19}$/.test(req.params.id)) return res.status(404).send("Proposta não encontrada.");
+      if (!/^[1-9]\d{0,19}$/.test(req.params.id)) return res.status(404).send("Proposta não encontrada.");
       const proposal = await loadProposal(pool, req.params.id);
       if (!proposal) return res.status(404).send("Proposta não encontrada.");
       res.set("Cache-Control", "private, no-store");
@@ -212,7 +213,7 @@ function createProposalsRouter({ pool, appOrigin }) {
 
   router.get("/:id", authenticated, async (req, res, next) => {
     try {
-      if (!/^[1-9]\\d{0,19}$/.test(req.params.id)) return res.status(404).json({ error: "proposal_not_found" });
+      if (!/^[1-9]\d{0,19}$/.test(req.params.id)) return res.status(404).json({ error: "proposal_not_found" });
       const proposal = await loadProposal(pool, req.params.id);
       if (!proposal) return res.status(404).json({ error: "proposal_not_found" });
       res.set("Cache-Control", "private, no-store");
