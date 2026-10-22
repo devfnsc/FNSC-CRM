@@ -126,6 +126,7 @@ function renderPrintDocument(proposal) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="/print.js" defer></script>
   <title>${escapeHtml(proposal.title)} — FNSC-CRM</title>
   <style>
     :root { color: #172033; font: 15px/1.5 system-ui, sans-serif; }
