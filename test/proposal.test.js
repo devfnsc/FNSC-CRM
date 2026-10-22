@@ -254,7 +254,14 @@ test("authenticated owner creates a draft proposal with exact totals", async () 
       body: JSON.stringify({ status: "accepted" })
     });
     assert.equal(accepted.status, 200);
+    assert.deepEqual(stored.history.map((event) => [event.previous_status, event.new_status]), [
+      [null, "draft"], ["draft", "sent"], ["sent", "accepted"]
+    ]);
     assert.equal(stored.history.length, 3);
+    const finalDetails = await fetch(baseUrl + "/api/proposals/1", { headers: { "Cookie": cookie } });
+    const { proposal: finalProposal } = await finalDetails.json();
+    assert.equal(finalProposal.status, "accepted");
+    assert.equal(finalProposal.statusHistory.length, 3);
 
     const locked = await fetch(baseUrl + "/api/proposals/1/status", {
       method: "PUT",
