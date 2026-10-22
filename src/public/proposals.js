@@ -131,6 +131,14 @@ async function showProposalDetails(id) {
     table.append(body);
     proposalDetailsContent.append(table);
     if (proposal.notes) appendDetailText(proposalDetailsContent, "p", "Observações: " + proposal.notes);
+    if (proposal.status === "accepted") {
+      const createContractButton = document.createElement("button");
+      createContractButton.type = "button";
+      createContractButton.textContent = "Criar contrato em rascunho";
+      createContractButton.addEventListener("click", () => window.startContractFromProposal(proposal.id));
+      proposalDetailsContent.append(createContractButton);
+    }
+
     const editButton = document.createElement("button");
     editButton.type = "button";
     editButton.textContent = "Editar rascunho";
