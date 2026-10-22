@@ -98,6 +98,7 @@
       <h2 id="proposal-title">Nova proposta</h2>
       <p class="muted">Crie um rascunho com serviços e valores negociados. A proposta ainda não é enviada ao cliente.</p>
       <form id="proposal-form">
+        <input id="proposal-id" name="proposalId" type="hidden">
         <label for="proposal-customer">Cliente <span aria-hidden="true">*</span></label>
         <select id="proposal-customer" name="customerId" required>
           <option value="">Carregando clientes...</option>
@@ -114,7 +115,10 @@
           <button id="add-proposal-item" type="button">Adicionar serviço</button>
         </fieldset>
         <p id="proposal-total" role="status">Total: R$ 0,00</p>
-        <button id="save-proposal" type="submit">Salvar rascunho</button>
+        <div class="form-actions">
+          <button id="save-proposal" type="submit">Salvar rascunho</button>
+          <button id="cancel-proposal-edit" type="button" hidden>Cancelar edição</button>
+        </div>
         <p id="proposal-message" role="status" aria-live="polite"></p>
       </form>
       <h3>Propostas recentes</h3>

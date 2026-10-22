@@ -6,6 +6,8 @@ const totalLabel = document.querySelector("#proposal-total");
 const proposalMessage = document.querySelector("#proposal-message");
 const proposalList = document.querySelector("#proposal-list");
 const proposalListMessage = document.querySelector("#proposal-list-message");
+const cancelProposalEdit = document.querySelector("#cancel-proposal-edit");
+const proposalHeading = document.querySelector("#proposal-title");
 
 let services = [];
 
@@ -35,6 +37,34 @@ function appendDetailText(parent, tagName, text, className) {
   if (className) element.className = className;
   parent.append(element);
   return element;
+}
+
+
+function enterProposalEdit(proposal) {
+  proposalForm.elements.proposalId.value = proposal.id;
+  customerSelect.value = String(proposal.customerId);
+  proposalForm.elements.title.value = proposal.title;
+  proposalForm.elements.validUntil.value = proposal.validUntil || "";
+  proposalForm.elements.notes.value = proposal.notes || "";
+  itemList.replaceChildren();
+  for (const item of proposal.items) addProposalItem(item);
+  proposalHeading.textContent = "Editar proposta";
+  proposalForm.querySelector("#save-proposal").textContent = "Atualizar rascunho";
+  cancelProposalEdit.hidden = false;
+  proposalMessage.textContent = "Editando rascunho. As alterações só serão salvas ao confirmar.";
+  proposalForm.scrollIntoView({ behavior: "smooth", block: "start" });
+  proposalForm.elements.title.focus({ preventScroll: true });
+}
+
+function resetProposalForm() {
+  proposalForm.reset();
+  proposalMessage.textContent = "";
+  proposalForm.elements.proposalId.value = "";
+  itemList.replaceChildren();
+  if (services.length) addProposalItem();
+  proposalHeading.textContent = "Nova proposta";
+  proposalForm.querySelector("#save-proposal").textContent = "Salvar rascunho";
+  cancelProposalEdit.hidden = true;
 }
 
 async function showProposalDetails(id) {
@@ -72,6 +102,13 @@ async function showProposalDetails(id) {
     table.append(body);
     proposalDetailsContent.append(table);
     if (proposal.notes) appendDetailText(proposalDetailsContent, "p", "Observações: " + proposal.notes);
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.textContent = "Editar rascunho";
+    editButton.disabled = proposal.status !== "draft" || proposal.items.some((item) => !item.serviceId);
+    editButton.addEventListener("click", () => enterProposalEdit(proposal));
+    proposalDetailsContent.append(editButton);
+
     const link = document.createElement("a");
     link.href = "/api/proposals/" + encodeURIComponent(proposal.id) + "/print";
     link.target = "_blank";
@@ -124,13 +161,14 @@ async function loadProposalOptions() {
   addProposalItem();
 }
 
-function createServiceSelect() {
+function createServiceSelect(initialServiceId = "") {
   const select = document.createElement("select");
   select.className = "proposal-service";
   select.setAttribute("aria-label", "Serviço");
   select.required = true;
   select.add(new Option("Selecione um serviço", ""));
   for (const service of services) select.add(new Option(service.name, service.id));
+  if (initialServiceId) select.value = String(initialServiceId);
   select.addEventListener("change", () => {
     const service = services.find((item) => String(item.id) === select.value);
     const row = select.closest(".proposal-item-row");
@@ -141,16 +179,16 @@ function createServiceSelect() {
   return select;
 }
 
-function addProposalItem() {
+function addProposalItem(initialItem = null) {
   const row = document.createElement("div");
   row.className = "proposal-item-row";
-  const service = createServiceSelect();
+  const service = createServiceSelect(initialItem?.serviceId);
   const quantity = document.createElement("input");
   quantity.type = "number";
   quantity.min = "1";
   quantity.max = "1000";
   quantity.step = "1";
-  quantity.value = "1";
+  quantity.value = String(initialItem?.quantity ?? 1);
   quantity.placeholder = "Quantidade";
   quantity.className = "proposal-quantity";
   quantity.setAttribute("aria-label", "Quantidade");
@@ -159,7 +197,7 @@ function addProposalItem() {
   price.min = "0";
   price.max = "99999999.99";
   price.step = "0.01";
-  price.value = "0.00";
+  price.value = initialItem?.unitPrice || "0.00";
   price.placeholder = "Valor unitário (R$)";
   price.className = "proposal-unit-price";
   price.setAttribute("aria-label", "Valor unitário em reais");
@@ -215,7 +253,8 @@ async function loadProposals() {
   }
 }
 
-addItemButton.addEventListener("click", addProposalItem);
+addItemButton.addEventListener("click", () => addProposalItem());
+cancelProposalEdit.addEventListener("click", resetProposalForm);
 
 proposalForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -228,13 +267,14 @@ proposalForm.addEventListener("submit", async (event) => {
       quantity: row.querySelector(".proposal-quantity").value,
       unitPrice: row.querySelector(".proposal-unit-price").value
     }));
+    const proposalId = proposalForm.elements.proposalId.value;
     const proposal = Object.fromEntries(
       ["customerId", "title", "validUntil", "notes"]
         .map((name) => [name, proposalForm.elements[name].value])
     );
     proposal.items = items;
-    const response = await fetch("/api/proposals", {
-      method: "POST",
+    const response = await fetch(proposalId ? "/api/proposals/" + encodeURIComponent(proposalId) : "/api/proposals", {
+      method: proposalId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       body: JSON.stringify(proposal)
@@ -247,13 +287,19 @@ proposalForm.addEventListener("submit", async (event) => {
       proposalMessage.textContent = "Revise cliente, serviços, quantidades, valores e validade.";
       return;
     }
-    if (!response.ok) throw new Error("create_failed");
+    if (response.status === 409) {
+      proposalMessage.textContent = "Esta proposta não está mais em rascunho e não pode ser editada.";
+      return;
+    }
+    if (response.status === 404) {
+      proposalMessage.textContent = "A proposta não foi encontrada. Atualize a lista antes de tentar novamente.";
+      return;
+    }
+    if (!response.ok) throw new Error("save_failed");
 
-    proposalForm.reset();
-    itemList.replaceChildren();
-    addProposalItem();
+    resetProposalForm();
     updateProposalTotal();
-    proposalMessage.textContent = "Proposta salva como rascunho.";
+    proposalMessage.textContent = proposalId ? "Rascunho atualizado." : "Proposta salva como rascunho.";
     await loadProposals();
   } catch (_error) {
     proposalMessage.textContent = "Não foi possível salvar a proposta.";

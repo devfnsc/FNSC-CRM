@@ -15,11 +15,26 @@ async function createServer({ authenticated = true } = {}) {
     rollback: async () => {},
     release: () => {},
     execute: async (query, values = []) => {
+      if (query.includes("SELECT id, status FROM proposals WHERE id")) {
+        const proposal = stored.proposals.find((item) => String(item.id) === String(values[0]));
+        return [proposal ? [{ id: proposal.id, status: proposal.status }] : [], []];
+      }
       if (query.includes("FROM customers WHERE id")) return [[{ id: values[0] }], []];
       if (query.includes("FROM services WHERE id")) {
         const services = { "10": { id: 10, name: "Gestão de redes sociais", description: "Conteúdo mensal." },
           "11": { id: 11, name: "Anúncios digitais", description: "Planejamento de mídia." } };
         return [[services[String(values[0])]].filter(Boolean), []];
+      }
+      if (query.includes("UPDATE proposals SET")) {
+        const [customerId, title, validUntil, notes, total, id] = values;
+        Object.assign(stored.proposals.find((item) => String(item.id) === String(id)), {
+          customer_id: customerId, title, valid_until: validUntil, notes, total
+        });
+        return [{ affectedRows: 1 }, []];
+      }
+      if (query.includes("DELETE FROM proposal_items")) {
+        stored.items = [];
+        return [{ affectedRows: 2 }, []];
       }
       if (query.includes("INSERT INTO proposals")) {
         const [customerId, title, validUntil, notes, total] = values;
@@ -42,6 +57,7 @@ async function createServer({ authenticated = true } = {}) {
         const proposal = stored.proposals.find((item) => String(item.id) === String(values[0]));
         return [proposal ? [{
           id: proposal.id,
+          customer_id: proposal.customer_id,
           title: proposal.title,
           status: proposal.status,
           valid_until: proposal.valid_until,
@@ -56,6 +72,7 @@ async function createServer({ authenticated = true } = {}) {
       }
       if (query.includes("FROM proposal_items WHERE proposal_id")) {
         return [stored.items.map((item) => ({
+          service_id: item[1],
           service_name: item[2],
           description: item[3],
           quantity: item[4],
@@ -173,6 +190,39 @@ test("authenticated owner creates a draft proposal with exact totals", async () 
     assert.match(document, /Imprimir \/ salvar como PDF/u);
     assert.match(document, /Rascunho — não enviada/u);
     assert.match(document, /250,25/u);
+
+    const updated = await fetch(baseUrl + "/api/proposals/1", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:3000",
+        "Cookie": cookie
+      },
+      body: JSON.stringify({
+        customerId: "42",
+        title: "Plano atualizado",
+        validUntil: "2026-12-31",
+        notes: "Escopo revisado.",
+        items: [{ serviceId: "10", quantity: "3", unitPrice: "25.00" }]
+      })
+    });
+    assert.equal(updated.status, 200);
+    const updatedProposal = (await updated.json()).proposal;
+    assert.equal(updatedProposal.total, "75.00");
+    assert.equal(updatedProposal.items[0].serviceId, "10");
+    assert.equal(stored.items.length, 1);
+
+    stored.proposals[0].status = "accepted";
+    const locked = await fetch(baseUrl + "/api/proposals/1", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:3000",
+        "Cookie": cookie
+      },
+      body: JSON.stringify({ ...proposalPayload, customerId: "42" })
+    });
+    assert.equal(locked.status, 409);
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
@@ -217,6 +267,12 @@ test("proposals require an authenticated session", async () => {
   try {
     const listed = await fetch(baseUrl + "/api/proposals");
     assert.equal(listed.status, 401);
+    const update = await fetch(baseUrl + "/api/proposals/1", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Origin": "http://localhost:3000" },
+      body: JSON.stringify(proposalPayload)
+    });
+    assert.equal(update.status, 401);
     const details = await fetch(baseUrl + "/api/proposals/1");
     assert.equal(details.status, 401);
     const printable = await fetch(baseUrl + "/api/proposals/1/print");

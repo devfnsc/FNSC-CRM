@@ -75,19 +75,20 @@ function formatMoney(value) {
 
 async function loadProposal(pool, id) {
   const [rows] = await pool.execute(
-    "SELECT p.id, p.title, p.status, p.valid_until, p.notes, p.total, p.created_at, " +
+    "SELECT p.id, p.customer_id, p.title, p.status, p.valid_until, p.notes, p.total, p.created_at, " +
     "c.name AS customer_name, c.company_name AS customer_company, c.email AS customer_email, c.phone AS customer_phone " +
     "FROM proposals p JOIN customers c ON c.id = p.customer_id WHERE p.id = ? LIMIT 1",
     [id]
   );
   if (!rows[0]) return null;
   const [items] = await pool.execute(
-    "SELECT service_name, description, quantity, unit_price, line_total " +
+    "SELECT service_id, service_name, description, quantity, unit_price, line_total " +
     "FROM proposal_items WHERE proposal_id = ? ORDER BY id",
     [id]
   );
   return {
     id: rows[0].id,
+    customerId: String(rows[0].customer_id),
     title: rows[0].title,
     status: rows[0].status,
     validUntil: rows[0].valid_until,
@@ -101,6 +102,7 @@ async function loadProposal(pool, id) {
       phone: rows[0].customer_phone
     },
     items: items.map((item) => ({
+      serviceId: item.service_id === null ? null : String(item.service_id),
       serviceName: item.service_name,
       description: item.description,
       quantity: item.quantity,
@@ -221,6 +223,97 @@ function createProposalsRouter({ pool, appOrigin }) {
       res.json({ proposal });
     } catch (error) {
       next(error);
+    }
+  });
+
+
+  router.put("/:id", sameOrigin, authenticated, async (req, res, next) => {
+    let connection;
+    try {
+      if (!/^[1-9]\d{0,19}$/.test(req.params.id) ||
+          !req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+        return res.status(400).json({ error: "invalid_proposal" });
+      }
+      const proposal = validateProposal(req.body);
+      if (!proposal) return res.status(400).json({ error: "invalid_proposal" });
+
+      connection = await pool.getConnection();
+      await connection.beginTransaction();
+      const [existing] = await connection.execute(
+        "SELECT id, status FROM proposals WHERE id = ? FOR UPDATE",
+        [req.params.id]
+      );
+      if (!existing[0]) {
+        await connection.rollback();
+        return res.status(404).json({ error: "proposal_not_found" });
+      }
+      if (existing[0].status !== "draft") {
+        await connection.rollback();
+        return res.status(409).json({ error: "proposal_not_editable" });
+      }
+
+      const [customers] = await connection.execute(
+        "SELECT id FROM customers WHERE id = ? AND archived_at IS NULL LIMIT 1",
+        [proposal.customerId]
+      );
+      if (!customers[0]) {
+        await connection.rollback();
+        return res.status(400).json({ error: "customer_not_active" });
+      }
+
+      const items = [];
+      for (const item of proposal.items) {
+        const [services] = await connection.execute(
+          "SELECT id, name, description FROM services WHERE id = ? LIMIT 1",
+          [item.serviceId]
+        );
+        if (!services[0]) {
+          await connection.rollback();
+          return res.status(400).json({ error: "service_not_found" });
+        }
+        items.push({
+          serviceId: String(services[0].id),
+          serviceName: services[0].name,
+          description: services[0].description,
+          quantity: item.quantity,
+          unitPrice: fromCents(item.unitPriceCents),
+          lineTotal: fromCents(item.lineTotalCents)
+        });
+      }
+
+      await connection.execute(
+        "UPDATE proposals SET customer_id = ?, title = ?, valid_until = ?, notes = ?, total = ? " +
+        "WHERE id = ? AND status = 'draft'",
+        [proposal.customerId, proposal.title, proposal.validUntil, proposal.notes, fromCents(proposal.totalCents), req.params.id]
+      );
+      await connection.execute("DELETE FROM proposal_items WHERE proposal_id = ?", [req.params.id]);
+      for (const item of items) {
+        await connection.execute(
+          "INSERT INTO proposal_items (proposal_id, service_id, service_name, description, quantity, unit_price, line_total) " +
+          "VALUES (?, ?, ?, ?, ?, ?, ?)",
+          [req.params.id, item.serviceId, item.serviceName, item.description, item.quantity, item.unitPrice, item.lineTotal]
+        );
+      }
+      await connection.commit();
+      res.json({
+        proposal: {
+          id: req.params.id,
+          customerId: proposal.customerId,
+          title: proposal.title,
+          status: "draft",
+          validUntil: proposal.validUntil,
+          notes: proposal.notes,
+          total: fromCents(proposal.totalCents),
+          items
+        }
+      });
+    } catch (error) {
+      if (connection) {
+        try { await connection.rollback(); } catch (_rollbackError) { /* retain original error */ }
+      }
+      next(error);
+    } finally {
+      if (connection) connection.release();
     }
   });
 
