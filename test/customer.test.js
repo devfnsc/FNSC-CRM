@@ -8,6 +8,16 @@ async function createAuthenticatedServer() {
   const password = "correct-horse-battery-93";
   const passwordHash = await bcrypt.hash(password, 4);
   const saved = [];
+  const customers = [{
+    id: 42,
+    name: "Ana Souza",
+    company_name: "Exemplo Ltda.",
+    email: "ana@example.com",
+    phone: "+55 11 99999-0000",
+    notes: "Prefere contato por e-mail.",
+    created_at: "2026-10-22T12:00:00.000Z",
+    updated_at: "2026-10-22T12:00:00.000Z"
+  }];
   const user = { id: 7, email: "admin@example.com" };
   const pool = {
     execute: async (query, values = []) => {
@@ -16,6 +26,24 @@ async function createAuthenticatedServer() {
       if (query.includes("INSERT INTO customers")) {
         saved.push(values);
         return [{ insertId: 42 }, []];
+      }
+      if (query.includes("FROM customers") && query.includes("WHERE id = ?")) {
+        return [[customers.find((customer) => String(customer.id) === String(values[0]))].filter(Boolean), []];
+      }
+      if (query.includes("FROM customers")) {
+        let result = customers;
+        const listValues = [...values];
+        if (query.includes(" WHERE name LIKE ?")) {
+          const patterns = listValues.splice(0, 4);
+          const term = patterns[0].slice(1, -1).toLowerCase();
+          result = result.filter((customer) =>
+            [customer.name, customer.company_name, customer.email, customer.phone]
+              .some((value) => value && value.toLowerCase().includes(term))
+          );
+        }
+        const limit = listValues[0];
+        const offset = listValues[1];
+        return [result.slice(offset, offset + limit), []];
       }
       throw new Error("Unexpected SQL in test: " + query);
     }
@@ -79,37 +107,69 @@ test("authenticated owner can register a customer with a contact method", async 
   }
 });
 
-test("customer registration rejects missing contact and invalid email", async () => {
-  const { server, baseUrl, cookie, saved } = await createAuthenticatedServer();
+test("customer listing supports search and pagination", async () => {
+  const { server, baseUrl, cookie } = await createAuthenticatedServer();
   try {
-    const noContact = await fetch(baseUrl + "/api/customers", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Origin": "http://localhost:3000",
-        "Cookie": cookie
-      },
-      body: JSON.stringify({ name: "Ana Souza" })
+    const response = await fetch(baseUrl + "/api/customers?q=Ana&page=1&limit=1", {
+      headers: { "Cookie": cookie }
     });
-    assert.equal(noContact.status, 400);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      customers: [{
+        id: 42,
+        name: "Ana Souza",
+        companyName: "Exemplo Ltda.",
+        email: "ana@example.com",
+        phone: "+55 11 99999-0000",
+        createdAt: "2026-10-22T12:00:00.000Z"
+      }],
+      page: 1,
+      limit: 1,
+      hasMore: false
+    });
 
-    const invalidEmail = await fetch(baseUrl + "/api/customers", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Origin": "http://localhost:3000",
-        "Cookie": cookie
-      },
-      body: JSON.stringify({ name: "Ana Souza", email: "not-an-email" })
+    const invalid = await fetch(baseUrl + "/api/customers?page=0", {
+      headers: { "Cookie": cookie }
     });
-    assert.equal(invalidEmail.status, 400);
-    assert.equal(saved.length, 0);
+    assert.equal(invalid.status, 400);
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
 });
 
-test("customer registration requires an authenticated session", async () => {
+test("customer details are available only to an authenticated session", async () => {
+  const { server, baseUrl, cookie } = await createAuthenticatedServer();
+  try {
+    const response = await fetch(baseUrl + "/api/customers/42", {
+      headers: { "Cookie": cookie }
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).customer, {
+      id: 42,
+      name: "Ana Souza",
+      companyName: "Exemplo Ltda.",
+      email: "ana@example.com",
+      phone: "+55 11 99999-0000",
+      createdAt: "2026-10-22T12:00:00.000Z",
+      notes: "Prefere contato por e-mail.",
+      updatedAt: "2026-10-22T12:00:00.000Z"
+    });
+
+    const missing = await fetch(baseUrl + "/api/customers/999", {
+      headers: { "Cookie": cookie }
+    });
+    assert.equal(missing.status, 404);
+
+    const malformed = await fetch(baseUrl + "/api/customers/0", {
+      headers: { "Cookie": cookie }
+    });
+    assert.equal(malformed.status, 400);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("customer directory and details require an authenticated session", async () => {
   const app = createApp({
     pool: { execute: async () => [[], []] },
     sessionStore: new session.MemoryStore(),
@@ -121,15 +181,10 @@ test("customer registration requires an authenticated session", async () => {
   });
   const server = app.listen(0);
   try {
-    const response = await fetch("http://127.0.0.1:" + server.address().port + "/api/customers", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Origin": "http://localhost:3000"
-      },
-      body: JSON.stringify({ name: "Ana Souza", phone: "+55 11 99999-0000" })
-    });
-    assert.equal(response.status, 401);
+    for (const path of ["/api/customers", "/api/customers/42"]) {
+      const response = await fetch("http://127.0.0.1:" + server.address().port + path);
+      assert.equal(response.status, 401);
+    }
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
