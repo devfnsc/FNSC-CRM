@@ -18,7 +18,7 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
       { service_name: "Anúncios digitais", description: "Mídia paga.", quantity: 1, unit_price: "50.25", line_total: "50.25" }
     ],
     contract: null,
-    items: [], revisions: []
+    items: [], revisions: [], statusHistory: []
   };
   const connection = {
     beginTransaction: async () => {},
@@ -43,7 +43,15 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
         return [{ insertId: state.contract.id }, []];
       }
       if (query.includes("INSERT INTO contract_revisions")) { state.revisions.push(values); return [{ insertId: state.revisions.length }, []]; }
+      if (query.includes("INSERT INTO contract_status_history")) { state.statusHistory.push(values); return [{ insertId: state.statusHistory.length }, []]; }
       if (query.includes("SELECT COALESCE(MAX(revision_number)")) return [[{ latest_revision: state.revisions.length }], []];
+      if (query.includes("SELECT id, status FROM contracts WHERE id = ? FOR UPDATE")) {
+        return [state.contract ? [{ id: state.contract.id, status: state.contract.status }] : [], []];
+      }
+      if (query.includes("UPDATE contracts SET status =")) {
+        state.contract.status = values[0];
+        return [{ affectedRows: 1 }, []];
+      }
       if (query.includes("INSERT INTO contract_items")) {
         state.items.push(values);
         return [{ insertId: state.items.length }, []];
@@ -66,6 +74,9 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
       if (query.includes("FROM contracts WHERE id")) {
         return [state.contract && String(state.contract.id) === String(values[0]) ? [{ ...state.contract }] : [], []];
       }
+      if (query.includes("FROM contract_status_history")) return [state.statusHistory.map((v) => ({
+        status: v[1], created_at: "2026-10-22", changed_by_email: "admin@example.com"
+      })), []];
       if (query.includes("FROM contract_revisions")) return [state.revisions.map((v, i) => ({
         revision_number: i + 1, title: v[2], effective_date: v[3], end_date: v[4], payment_terms: v[5],
         clauses: v[6], total: v[7], created_at: "2026-10-22", created_by_email: "admin@example.com"
@@ -121,6 +132,7 @@ test("accepted proposal creates an editable, print-ready contract draft", async 
     assert.equal((await created.json()).contract.status, "draft");
     assert.equal(state.items.length, 2);
     assert.equal(state.revisions.length, 1);
+    assert.equal(state.statusHistory.length, 1);
 
     const duplicate = await fetch(baseUrl + "/api/contracts/from-proposal/3", {
       method: "POST",
@@ -177,6 +189,43 @@ test("accepted proposal creates an editable, print-ready contract draft", async 
   }
 });
 
+
+test("draft contracts can be manually marked signed or cancelled only once", async () => {
+  const { server, baseUrl, cookie, state } = await createServer();
+  try {
+    const created = await fetch(baseUrl + "/api/contracts/from-proposal/3", {
+      method: "POST", headers: { "Content-Type": "application/json", Origin: "http://localhost:3000", Cookie: cookie }, body: "{}"
+    });
+    assert.equal(created.status, 201);
+    const signed = await fetch(baseUrl + "/api/contracts/9/status", {
+      method: "POST", headers: { "Content-Type": "application/json", Origin: "http://localhost:3000", Cookie: cookie },
+      body: JSON.stringify({ status: "signed" })
+    });
+    assert.equal(signed.status, 200);
+    assert.equal(state.contract.status, "signed");
+    assert.equal(state.statusHistory.length, 2);
+    const repeat = await fetch(baseUrl + "/api/contracts/9/status", {
+      method: "POST", headers: { "Content-Type": "application/json", Origin: "http://localhost:3000", Cookie: cookie },
+      body: JSON.stringify({ status: "cancelled" })
+    });
+    assert.equal(repeat.status, 409);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("contract status accepts only signed or cancelled", async () => {
+  const { server, baseUrl, cookie } = await createServer();
+  try {
+    const response = await fetch(baseUrl + "/api/contracts/9/status", {
+      method: "POST", headers: { "Content-Type": "application/json", Origin: "http://localhost:3000", Cookie: cookie },
+      body: JSON.stringify({ status: "draft" })
+    });
+    assert.equal(response.status, 400);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
 test("only accepted proposals can create contracts and dates are validated", async () => {
   const { server, baseUrl, cookie } = await createServer({ proposalStatus: "draft" });
   try {
