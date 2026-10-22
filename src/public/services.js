@@ -1,7 +1,12 @@
 const serviceForm = document.querySelector("#service-form");
+const serviceIdField = document.querySelector("#service-id");
+const saveServiceButton = document.querySelector("#save-service");
+const cancelServiceEditButton = document.querySelector("#cancel-service-edit");
 const serviceMessage = document.querySelector("#service-message");
 const serviceList = document.querySelector("#service-list");
 const serviceListMessage = document.querySelector("#service-list-message");
+
+let editingServiceId = null;
 
 function serviceCell(row, value) {
   const cell = document.createElement("td");
@@ -33,6 +38,13 @@ async function loadServices() {
       serviceCell(row, service.name);
       serviceCell(row, service.description);
       serviceCell(row, formatPrice(service.referencePrice));
+      const actionCell = document.createElement("td");
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.textContent = "Editar";
+      editButton.addEventListener("click", () => beginServiceEdit(service));
+      actionCell.append(editButton);
+      row.append(actionCell);
       serviceList.append(row);
     }
     serviceListMessage.textContent = services.length ? "" : "Nenhum serviço cadastrado.";
@@ -40,6 +52,28 @@ async function loadServices() {
     serviceListMessage.textContent = "Não foi possível carregar o catálogo.";
     serviceListMessage.dataset.state = "error";
   }
+}
+
+function beginServiceEdit(service) {
+  editingServiceId = service.id;
+  serviceIdField.value = service.id;
+  serviceForm.elements.name.value = service.name;
+  serviceForm.elements.description.value = service.description || "";
+  serviceForm.elements.referencePrice.value = service.referencePrice || "";
+  saveServiceButton.textContent = "Salvar alterações";
+  cancelServiceEditButton.hidden = false;
+  serviceMessage.textContent = "Editando o serviço selecionado.";
+  serviceForm.scrollIntoView({ block: "start", behavior: "smooth" });
+  serviceForm.elements.name.focus();
+}
+
+function cancelServiceEdit() {
+  editingServiceId = null;
+  serviceIdField.value = "";
+  serviceForm.reset();
+  saveServiceButton.textContent = "Cadastrar serviço";
+  cancelServiceEditButton.hidden = true;
+  serviceMessage.textContent = "Edição cancelada.";
 }
 
 serviceForm.addEventListener("submit", async (event) => {
@@ -52,12 +86,16 @@ serviceForm.addEventListener("submit", async (event) => {
       ["name", "description", "referencePrice"]
         .map((name) => [name, serviceForm.elements[name].value])
     );
-    const response = await fetch("/api/services", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify(service)
-    });
+    const isEditing = Boolean(editingServiceId);
+    const response = await fetch(
+      isEditing ? "/api/services/" + encodeURIComponent(editingServiceId) : "/api/services",
+      {
+        method: isEditing ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(service)
+      }
+    );
     if (response.status === 401) {
       window.location.assign("/");
       return;
@@ -66,15 +104,25 @@ serviceForm.addEventListener("submit", async (event) => {
       serviceMessage.textContent = "Confira o nome e o valor. Use até duas casas decimais.";
       return;
     }
-    if (!response.ok) throw new Error("create_failed");
+    if (response.status === 404) {
+      serviceMessage.textContent = "Este serviço não foi encontrado.";
+      return;
+    }
+    if (!response.ok) throw new Error("save_failed");
+
     serviceForm.reset();
-    serviceMessage.textContent = "Serviço cadastrado.";
+    editingServiceId = null;
+    serviceIdField.value = "";
+    saveServiceButton.textContent = "Cadastrar serviço";
+    cancelServiceEditButton.hidden = true;
+    serviceMessage.textContent = isEditing ? "Serviço atualizado." : "Serviço cadastrado.";
     await loadServices();
   } catch (_error) {
-    serviceMessage.textContent = "Não foi possível cadastrar o serviço.";
+    serviceMessage.textContent = "Não foi possível salvar o serviço.";
   } finally {
     button.disabled = false;
   }
 });
 
+cancelServiceEditButton.addEventListener("click", cancelServiceEdit);
 loadServices();

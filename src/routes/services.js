@@ -53,6 +53,32 @@ function createServicesRouter({ pool, appOrigin }) {
     }
   });
 
+  router.put("/:id", sameOrigin, authenticated, async (req, res, next) => {
+    try {
+      if (!/^[1-9]\d{0,19}$/.test(req.params.id)) {
+        return res.status(400).json({ error: "invalid_service_id" });
+      }
+      if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+        return res.status(400).json({ error: "invalid_service" });
+      }
+      const service = validateService(req.body);
+      if (!service) return res.status(400).json({ error: "invalid_service" });
+
+      await pool.execute(
+        "UPDATE services SET name = ?, description = ?, reference_price = ? WHERE id = ?",
+        [service.name, service.description, service.referencePrice, req.params.id]
+      );
+      const [rows] = await pool.execute(
+        "SELECT id, name, description, reference_price FROM services WHERE id = ? LIMIT 1",
+        [req.params.id]
+      );
+      if (!rows[0]) return res.status(404).json({ error: "service_not_found" });
+      res.json({ service: asService(rows[0]) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post("/", sameOrigin, authenticated, async (req, res, next) => {
     try {
       if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
