@@ -158,6 +158,7 @@ async function showContract(id, edit = false) {
     print.className = "proposal-print-link";
     contractDetailsContent.append(print);
 
+    window.dispatchEvent(new CustomEvent("contract:opened", { detail: contract }));
     if (edit === true) fillContractForm(contract);
   } catch (_error) {
     contractDetailsMessage.textContent = "Não foi possível abrir o contrato.";
