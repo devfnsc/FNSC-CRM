@@ -70,6 +70,12 @@
       <form id="customer-search-form" role="search">
         <label for="customer-search">Buscar por nome, empresa, e-mail ou telefone</label>
         <input id="customer-search" name="q" type="search" maxlength="120" autocomplete="off">
+        <label for="customer-status">Situação</label>
+        <select id="customer-status" name="status">
+          <option value="active">Ativos</option>
+          <option value="archived">Arquivados</option>
+          <option value="all">Todos</option>
+        </select>
         <button id="search-customers" type="submit">Buscar</button>
       </form>
       <p id="customer-list-message" role="status" aria-live="polite"></p>
@@ -86,7 +92,11 @@
       </nav>
       <section id="customer-details" class="customer-details" aria-live="polite" hidden>
         <h3>Detalhes do cliente</h3>
-        <button id="edit-customer" type="button">Editar cadastro</button>
+        <div class="detail-actions">
+          <button id="edit-customer" type="button">Editar cadastro</button>
+          <button id="archive-customer" type="button">Arquivar cliente</button>
+          <button id="restore-customer" type="button" hidden>Restaurar cliente</button>
+        </div>
         <dl id="customer-detail-fields"></dl>
       </section>
     </section>

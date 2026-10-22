@@ -16,7 +16,8 @@ async function createAuthenticatedServer() {
     phone: "+55 11 99999-0000",
     notes: "Prefere contato por e-mail.",
     created_at: "2026-10-22T12:00:00.000Z",
-    updated_at: "2026-10-22T12:00:00.000Z"
+    updated_at: "2026-10-22T12:00:00.000Z",
+    archived_at: null
   }];
   const user = { id: 7, email: "admin@example.com" };
   const pool = {
@@ -26,6 +27,16 @@ async function createAuthenticatedServer() {
       if (query.includes("INSERT INTO customers")) {
         saved.push(values);
         return [{ insertId: 42 }, []];
+      }
+      if (query.includes("UPDATE customers SET archived_at = CURRENT_TIMESTAMP")) {
+        const customer = customers.find((entry) => String(entry.id) === String(values[0]));
+        if (customer) customer.archived_at = "2026-10-22T14:00:00.000Z";
+        return [{ affectedRows: customer ? 1 : 0 }, []];
+      }
+      if (query.includes("UPDATE customers SET archived_at = NULL")) {
+        const customer = customers.find((entry) => String(entry.id) === String(values[0]));
+        if (customer) customer.archived_at = null;
+        return [{ affectedRows: customer ? 1 : 0 }, []];
       }
       if (query.includes("UPDATE customers SET")) {
         const [name, companyName, email, phone, notes, id] = values;
@@ -48,8 +59,10 @@ async function createAuthenticatedServer() {
       }
       if (query.includes("FROM customers")) {
         let result = customers;
+        if (query.includes("archived_at IS NULL")) result = result.filter((customer) => !customer.archived_at);
+        if (query.includes("archived_at IS NOT NULL")) result = result.filter((customer) => customer.archived_at);
         const listValues = [...values];
-        if (query.includes(" WHERE name LIKE ?")) {
+        if (query.includes("name LIKE ?")) {
           const patterns = listValues.splice(0, 4);
           const term = patterns[0].slice(1, -1).toLowerCase();
           result = result.filter((customer) =>
@@ -153,6 +166,31 @@ test("customer listing supports search and pagination", async () => {
   }
 });
 
+test("customer can be archived and restored without deleting the record", async () => {
+  const { server, baseUrl, cookie } = await createAuthenticatedServer();
+  try {
+    const archive = await fetch(baseUrl + "/api/customers/42/archive", {
+      method: "PATCH", headers: { "Origin": "http://localhost:3000", "Cookie": cookie }
+    });
+    assert.equal(archive.status, 200);
+    assert.equal((await archive.json()).customer.archivedAt, "2026-10-22T14:00:00.000Z");
+    const activeList = await fetch(baseUrl + "/api/customers?status=active", { headers: { "Cookie": cookie } });
+    assert.deepEqual((await activeList.json()).customers, []);
+    const archivedList = await fetch(baseUrl + "/api/customers?status=archived", { headers: { "Cookie": cookie } });
+    assert.equal((await archivedList.json()).customers.length, 1);
+
+    const restore = await fetch(baseUrl + "/api/customers/42/restore", {
+      method: "PATCH", headers: { "Origin": "http://localhost:3000", "Cookie": cookie }
+    });
+    assert.equal(restore.status, 200);
+    assert.equal((await restore.json()).customer.archivedAt, null);
+    const restored = await fetch(baseUrl + "/api/customers?status=active", { headers: { "Cookie": cookie } });
+    assert.equal((await restored.json()).customers.length, 1);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
 test("authenticated owner can update an existing customer", async () => {
   const { server, baseUrl, cookie } = await createAuthenticatedServer();
   try {
@@ -180,7 +218,8 @@ test("authenticated owner can update an existing customer", async () => {
       phone: "+55 11 98888-0000",
       createdAt: "2026-10-22T12:00:00.000Z",
       notes: "Prefere contato pela manhã.",
-      updatedAt: "2026-10-22T13:00:00.000Z"
+      updatedAt: "2026-10-22T13:00:00.000Z",
+      archivedAt: null
     });
 
     const invalid = await fetch(baseUrl + "/api/customers/42", {
@@ -224,7 +263,8 @@ test("customer details are available only to an authenticated session", async ()
       phone: "+55 11 99999-0000",
       createdAt: "2026-10-22T12:00:00.000Z",
       notes: "Prefere contato por e-mail.",
-      updatedAt: "2026-10-22T12:00:00.000Z"
+      updatedAt: "2026-10-22T12:00:00.000Z",
+      archivedAt: null
     });
 
     const missing = await fetch(baseUrl + "/api/customers/999", {
