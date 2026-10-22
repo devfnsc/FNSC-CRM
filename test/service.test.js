@@ -13,7 +13,16 @@ async function createServer({ authenticated = true } = {}) {
     execute: async (query, values = []) => {
       if (query.includes("password_hash")) return [[{ ...user, password_hash: passwordHash }], []];
       if (query.includes("FROM users WHERE id")) return [[user], []];
+      if (query.includes("SELECT id, name, description, reference_price FROM services WHERE id = ?")) {
+        return [[services.find((service) => String(service.id) === String(values[0]))].filter(Boolean), []];
+      }
       if (query.includes("SELECT id, name, description, reference_price FROM services")) return [services, []];
+      if (query.includes("UPDATE services SET")) {
+        const [name, description, reference_price, id] = values;
+        const service = services.find((entry) => String(entry.id) === String(id));
+        if (service) Object.assign(service, { name, description, reference_price });
+        return [{ affectedRows: service ? 1 : 0 }, []];
+      }
       if (query.includes("INSERT INTO services")) {
         const [name, description, reference_price] = values;
         const service = { id: services.length + 1, name, description, reference_price };
@@ -79,6 +88,67 @@ test("authenticated owner can create and list a service with a reference price",
       description: "Planejamento e publicação de conteúdo.",
       referencePrice: "1250.50"
     }]);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("authenticated owner can update a service", async () => {
+  const { server, baseUrl, cookie } = await createServer();
+  try {
+    const created = await fetch(baseUrl + "/api/services", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:3000",
+        "Cookie": cookie
+      },
+      body: JSON.stringify({ name: "Consultoria", description: "Inicial", referencePrice: "500" })
+    });
+    assert.equal(created.status, 201);
+
+    const updated = await fetch(baseUrl + "/api/services/1", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:3000",
+        "Cookie": cookie
+      },
+      body: JSON.stringify({
+        name: "Consultoria estratégica",
+        description: "Diagnóstico e plano de ação.",
+        referencePrice: "750.25"
+      })
+    });
+    assert.equal(updated.status, 200);
+    assert.deepEqual((await updated.json()).service, {
+      id: 1,
+      name: "Consultoria estratégica",
+      description: "Diagnóstico e plano de ação.",
+      referencePrice: "750.25"
+    });
+
+    const missing = await fetch(baseUrl + "/api/services/999", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:3000",
+        "Cookie": cookie
+      },
+      body: JSON.stringify({ name: "Consultoria", referencePrice: "100" })
+    });
+    assert.equal(missing.status, 404);
+
+    const invalid = await fetch(baseUrl + "/api/services/1", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:3000",
+        "Cookie": cookie
+      },
+      body: JSON.stringify({ name: " ", referencePrice: "1.999" })
+    });
+    assert.equal(invalid.status, 400);
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
