@@ -86,14 +86,8 @@ function renderPrintDocument(contract) {
   const customer = [contract.customer.name, contract.customer.companyName, contract.customer.email].filter(Boolean).map(escapeHtml).join(" · ");
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="/print.js" defer></script><title>${escapeHtml(contract.title)} — Contrato</title>
-<style>
-:root{color:#172033;font:15px/1.55 system-ui,sans-serif}*{box-sizing:border-box}body{max-width:850px;margin:2rem auto;padding:0 1.5rem}
-h1{font-size:1.7rem}h2{font-size:1.05rem;margin-top:1.6rem}table{width:100%;border-collapse:collapse;margin-top:1rem}
-th,td{text-align:left;padding:.6rem;border-bottom:1px solid #dce2eb;vertical-align:top}.warning{padding:.7rem;background:#fff4d6;color:#694f00;font-weight:700}
-.toolbar{margin-bottom:1.5rem}button{padding:.7rem 1rem;border:0;border-radius:.4rem;background:#244b9b;color:white;font:inherit;cursor:pointer}
-pre{white-space:pre-wrap;font:inherit} @page{margin:18mm}@media print{body{max-width:none;margin:0;padding:0}.toolbar{display:none}}
-</style></head><body>
+<script src="/print.js" defer></script><link rel="stylesheet" href="/contract-print.css"><title>${escapeHtml(contract.title)} — Contrato</title>
+</head><body>
 <div class="toolbar"><button id="print-document" type="button">Imprimir / salvar como PDF</button></div>
 <p class="warning">RASCUNHO — revisar o conteúdo e buscar orientação jurídica antes de assinar.</p>
 <h1>${escapeHtml(contract.title)}</h1><p>Contrato #${escapeHtml(contract.id)} · Proposta #${escapeHtml(contract.proposalId)}</p>
