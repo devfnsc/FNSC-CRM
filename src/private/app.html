@@ -121,10 +121,15 @@
       <p id="proposal-list-message" role="status" aria-live="polite"></p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Cliente</th><th>Proposta</th><th>Validade</th><th>Status</th><th>Total</th></tr></thead>
+          <thead><tr><th>Cliente</th><th>Proposta</th><th>Validade</th><th>Status</th><th>Total</th><th>Ações</th></tr></thead>
           <tbody id="proposal-list"></tbody>
         </table>
       </div>
+      <section id="proposal-details" class="proposal-details" aria-labelledby="proposal-details-title" aria-live="polite" hidden>
+        <h3 id="proposal-details-title">Detalhes da proposta</h3>
+        <p id="proposal-details-message" role="status"></p>
+        <div id="proposal-details-content"></div>
+      </section>
     </section>
     <section class="panel" aria-labelledby="customer-list-title">
       <p class="eyebrow">Carteira</p>
