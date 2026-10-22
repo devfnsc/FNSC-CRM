@@ -35,6 +35,11 @@ function validateContract(body) {
   return { title, effectiveDate, endDate, paymentTerms, clauses };
 }
 
+function dateValue(value) {
+  if (!value) return "";
+  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+}
+
 function formatMoney(value) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 }
@@ -50,6 +55,11 @@ async function loadContract(pool, id) {
   const [items] = await pool.execute(
     "SELECT service_name, description, quantity, unit_price, line_total " +
     "FROM contract_items WHERE contract_id = ? ORDER BY id",
+    [id]
+  );
+  const [revisions] = await pool.execute(
+    "SELECT r.revision_number, r.title, r.effective_date, r.end_date, r.payment_terms, r.clauses, r.total, r.created_at, u.email AS created_by_email " +
+    "FROM contract_revisions r LEFT JOIN users u ON u.id = r.created_by WHERE r.contract_id = ? ORDER BY r.revision_number ASC",
     [id]
   );
   return {
@@ -75,6 +85,11 @@ async function loadContract(pool, id) {
       quantity: item.quantity,
       unitPrice: item.unit_price,
       lineTotal: item.line_total
+    })),
+    revisions: revisions.map((r) => ({
+      number: r.revision_number, title: r.title, effectiveDate: r.effective_date, endDate: r.end_date,
+      paymentTerms: r.payment_terms, clauses: r.clauses, total: r.total, createdAt: r.created_at,
+      createdByEmail: r.created_by_email
     }))
   };
 }
@@ -163,6 +178,10 @@ function createContractsRouter({ pool, appOrigin }) {
           [created.insertId, item.service_name, item.description, item.quantity, item.unit_price, item.line_total]
         );
       }
+      await connection.execute(
+        "INSERT INTO contract_revisions (contract_id, revision_number, title, effective_date, end_date, payment_terms, clauses, total, created_by) VALUES (?, 1, ?, NULL, NULL, NULL, NULL, ?, ?)",
+        [created.insertId, proposal.title, proposal.total, req.user.id]
+      );
       await connection.commit();
       res.status(201).json({ contract: { id: created.insertId, proposalId: String(proposal.id), title: proposal.title, status: "draft" } });
     } catch (error) {
@@ -204,7 +223,7 @@ function createContractsRouter({ pool, appOrigin }) {
       if (!contract) return res.status(400).json({ error: "invalid_contract" });
       connection = await pool.getConnection();
       await connection.beginTransaction();
-      const [rows] = await connection.execute("SELECT id, status FROM contracts WHERE id = ? FOR UPDATE", [req.params.id]);
+      const [rows] = await connection.execute("SELECT id, status, title, effective_date, end_date, payment_terms, clauses, total FROM contracts WHERE id = ? FOR UPDATE", [req.params.id]);
       if (!rows[0]) {
         await connection.rollback();
         return res.status(404).json({ error: "contract_not_found" });
@@ -213,10 +232,25 @@ function createContractsRouter({ pool, appOrigin }) {
         await connection.rollback();
         return res.status(409).json({ error: "contract_not_editable" });
       }
-      await connection.execute(
-        "UPDATE contracts SET title = ?, effective_date = ?, end_date = ?, payment_terms = ?, clauses = ? WHERE id = ? AND status = 'draft'",
-        [contract.title, contract.effectiveDate, contract.endDate, contract.paymentTerms, contract.clauses, req.params.id]
-      );
+      const current = rows[0];
+      const changed = current.title !== contract.title ||
+        dateValue(current.effective_date) !== (contract.effectiveDate || "") ||
+        dateValue(current.end_date) !== (contract.endDate || "") ||
+        (current.payment_terms || null) !== contract.paymentTerms || (current.clauses || null) !== contract.clauses;
+      if (changed) {
+        await connection.execute(
+          "UPDATE contracts SET title = ?, effective_date = ?, end_date = ?, payment_terms = ?, clauses = ? WHERE id = ? AND status = 'draft'",
+          [contract.title, contract.effectiveDate, contract.endDate, contract.paymentTerms, contract.clauses, req.params.id]
+        );
+        const [latest] = await connection.execute(
+          "SELECT COALESCE(MAX(revision_number), 0) AS latest_revision FROM contract_revisions WHERE contract_id = ?", [req.params.id]
+        );
+        await connection.execute(
+          "INSERT INTO contract_revisions (contract_id, revision_number, title, effective_date, end_date, payment_terms, clauses, total, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [req.params.id, Number(latest[0].latest_revision) + 1, contract.title, contract.effectiveDate, contract.endDate,
+            contract.paymentTerms, contract.clauses, current.total, req.user.id]
+        );
+      }
       await connection.commit();
       res.json({ contract: { id: req.params.id, ...contract, status: "draft" } });
     } catch (error) {

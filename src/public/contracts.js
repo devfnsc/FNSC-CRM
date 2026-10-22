@@ -104,6 +104,23 @@ async function showContract(id, edit = false) {
     contractDetailsContent.append(table);
     if (contract.paymentTerms) contractText(contractDetailsContent, "p", "Pagamento: " + contract.paymentTerms);
     if (contract.clauses) contractText(contractDetailsContent, "pre", contract.clauses, "contract-clauses");
+    const history = document.createElement("section");
+    history.className = "contract-history";
+    contractText(history, "h5", "Histórico de versões");
+    for (const revision of contract.revisions || []) {
+      const entry = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = "Versão " + revision.number + " · " +
+        (revision.createdAt ? new Date(revision.createdAt).toLocaleString("pt-BR") : "data indisponível") +
+        (revision.createdByEmail ? " · " + revision.createdByEmail : "");
+      entry.append(summary);
+      contractText(entry, "p", revision.title);
+      contractText(entry, "p", "Vigência: " + (revision.effectiveDate || "a definir") + " até " + (revision.endDate || "a definir"));
+      contractText(entry, "p", "Pagamento: " + (revision.paymentTerms || "não definido"));
+      if (revision.clauses) contractText(entry, "pre", revision.clauses, "contract-clauses");
+      history.append(entry);
+    }
+    contractDetailsContent.append(history);
 
     const edit = document.createElement("button");
     edit.type = "button";
