@@ -184,7 +184,7 @@ function renderPrintDocument(proposal) {
     </table>
   </section>
   ${proposal.notes ? `<section><h2>Observações</h2><p class="notes">${escapeHtml(proposal.notes)}</p></section>` : ""}
-  <p class="muted" style="margin-top:2rem">Documento de revisão gerado pelo FNSC-CRM. Esta proposta permanece como rascunho e não foi enviada ao cliente.</p>
+  <p class="muted" style="margin-top:2rem">Documento de revisão gerado pelo FNSC-CRM. ${status === "Rascunho — não enviada" ? "Esta proposta permanece como rascunho e não foi enviada ao cliente." : "Status registrado: " + escapeHtml(status) + ". Este documento não é um contrato."}</p>
 </body>
 </html>`;
 }
