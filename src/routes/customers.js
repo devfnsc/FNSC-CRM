@@ -38,6 +38,7 @@ function asCustomer(row, includeNotes = false) {
   if (includeNotes) {
     customer.notes = row.notes;
     customer.updatedAt = row.updated_at;
+    customer.archivedAt = row.archived_at || null;
   }
   return customer;
 }
@@ -56,10 +57,11 @@ function createCustomersRouter({ pool, appOrigin }) {
         return res.status(400).json({ error: "invalid_customer_query" });
       }
       const search = rawSearch.trim();
+      const status = req.query.status === undefined ? "active" : req.query.status;
 
       if (!Number.isSafeInteger(page) || page < 1 ||
           !Number.isSafeInteger(limit) || limit < 1 || limit > 100 ||
-          search.length > 120) {
+          search.length > 120 || !["active", "archived", "all"].includes(status)) {
         return res.status(400).json({ error: "invalid_customer_query" });
       }
 
@@ -70,11 +72,15 @@ function createCustomersRouter({ pool, appOrigin }) {
 
       let sql = "SELECT id, name, company_name, email, phone, created_at FROM customers";
       const values = [];
+      const filters = [];
+      if (status === "active") filters.push("archived_at IS NULL");
+      if (status === "archived") filters.push("archived_at IS NOT NULL");
       if (search) {
-        sql += " WHERE name LIKE ? OR company_name LIKE ? OR email LIKE ? OR phone LIKE ?";
+        filters.push("(name LIKE ? OR company_name LIKE ? OR email LIKE ? OR phone LIKE ?)");
         const term = "%" + search + "%";
         values.push(term, term, term, term);
       }
+      if (filters.length) sql += " WHERE " + filters.join(" AND ");
       sql += " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?";
       values.push(limit + 1, offset);
 
@@ -97,7 +103,7 @@ function createCustomersRouter({ pool, appOrigin }) {
         return res.status(400).json({ error: "invalid_customer_id" });
       }
       const [rows] = await pool.execute(
-        "SELECT id, name, company_name, email, phone, notes, created_at, updated_at FROM customers WHERE id = ? LIMIT 1",
+        "SELECT id, name, company_name, email, phone, notes, created_at, updated_at, archived_at FROM customers WHERE id = ? LIMIT 1",
         [req.params.id]
       );
       if (!rows[0]) return res.status(404).json({ error: "customer_not_found" });
@@ -105,6 +111,32 @@ function createCustomersRouter({ pool, appOrigin }) {
     } catch (error) {
       next(error);
     }
+  });
+
+  router.patch("/:id/archive", sameOrigin, authenticated, async (req, res, next) => {
+    try {
+      if (!/^[1-9]\d{0,19}$/.test(req.params.id)) return res.status(400).json({ error: "invalid_customer_id" });
+      await pool.execute("UPDATE customers SET archived_at = CURRENT_TIMESTAMP WHERE id = ?", [req.params.id]);
+      const [rows] = await pool.execute(
+        "SELECT id, name, company_name, email, phone, notes, created_at, updated_at, archived_at FROM customers WHERE id = ? LIMIT 1",
+        [req.params.id]
+      );
+      if (!rows[0]) return res.status(404).json({ error: "customer_not_found" });
+      res.json({ customer: asCustomer(rows[0], true) });
+    } catch (error) { next(error); }
+  });
+
+  router.patch("/:id/restore", sameOrigin, authenticated, async (req, res, next) => {
+    try {
+      if (!/^[1-9]\d{0,19}$/.test(req.params.id)) return res.status(400).json({ error: "invalid_customer_id" });
+      await pool.execute("UPDATE customers SET archived_at = NULL WHERE id = ?", [req.params.id]);
+      const [rows] = await pool.execute(
+        "SELECT id, name, company_name, email, phone, notes, created_at, updated_at, archived_at FROM customers WHERE id = ? LIMIT 1",
+        [req.params.id]
+      );
+      if (!rows[0]) return res.status(404).json({ error: "customer_not_found" });
+      res.json({ customer: asCustomer(rows[0], true) });
+    } catch (error) { next(error); }
   });
 
   router.put("/:id", sameOrigin, authenticated, async (req, res, next) => {
@@ -123,7 +155,7 @@ function createCustomersRouter({ pool, appOrigin }) {
         [customer.name, customer.companyName, customer.email, customer.phone, customer.notes, req.params.id]
       );
       const [rows] = await pool.execute(
-        "SELECT id, name, company_name, email, phone, notes, created_at, updated_at FROM customers WHERE id = ? LIMIT 1",
+        "SELECT id, name, company_name, email, phone, notes, created_at, updated_at, archived_at FROM customers WHERE id = ? LIMIT 1",
         [req.params.id]
       );
       if (!rows[0]) return res.status(404).json({ error: "customer_not_found" });

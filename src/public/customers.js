@@ -3,9 +3,12 @@ const customerIdField = document.querySelector("#customer-id");
 const saveCustomerButton = document.querySelector("#save-customer");
 const cancelEditButton = document.querySelector("#cancel-customer-edit");
 const editCustomerButton = document.querySelector("#edit-customer");
+const archiveCustomerButton = document.querySelector("#archive-customer");
+const restoreCustomerButton = document.querySelector("#restore-customer");
 const customerMessage = document.querySelector("#customer-message");
 const searchForm = document.querySelector("#customer-search-form");
 const searchInput = document.querySelector("#customer-search");
+const statusInput = document.querySelector("#customer-status");
 const customerList = document.querySelector("#customer-list");
 const listMessage = document.querySelector("#customer-list-message");
 const previousButton = document.querySelector("#previous-customers");
@@ -36,6 +39,7 @@ async function loadCustomers() {
   try {
     const params = new URLSearchParams({ page: String(currentPage), limit: "20" });
     if (searchInput.value.trim()) params.set("q", searchInput.value.trim());
+    params.set("status", statusInput.value);
     const response = await fetch("/api/customers?" + params.toString(), {
       credentials: "same-origin"
     });
@@ -97,7 +101,8 @@ async function loadCustomerDetails(customerId) {
       ["Telefone", customer.phone],
       ["Observações", customer.notes],
       ["Criado em", customer.createdAt],
-      ["Atualizado em", customer.updatedAt]
+      ["Atualizado em", customer.updatedAt],
+      ["Situação", customer.archivedAt ? "Arquivado" : "Ativo"]
     ];
     for (const [label, value] of fields) {
       const term = document.createElement("dt");
@@ -107,6 +112,9 @@ async function loadCustomerDetails(customerId) {
       detailFields.append(term, description);
     }
     selectedCustomer = customer;
+    editCustomerButton.disabled = Boolean(customer.archivedAt);
+    archiveCustomerButton.hidden = Boolean(customer.archivedAt);
+    restoreCustomerButton.hidden = !customer.archivedAt;
     detailsPanel.hidden = false;
     detailsPanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
   } catch (_error) {
@@ -170,6 +178,44 @@ customerForm.addEventListener("submit", async (event) => {
     button.disabled = false;
   }
 });
+
+async function changeCustomerArchive(action) {
+  if (!selectedCustomer) return;
+  const isArchiving = action === "archive";
+  const prompt = isArchiving
+    ? "Arquivar este cliente? Ele poderá ser restaurado depois."
+    : "Restaurar este cliente para a lista de ativos?";
+  if (!window.confirm(prompt)) return;
+
+  archiveCustomerButton.disabled = true;
+  restoreCustomerButton.disabled = true;
+  try {
+    const response = await fetch("/api/customers/" + encodeURIComponent(selectedCustomer.id) + "/" + action, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: "{}"
+    });
+    if (response.status === 401) {
+      window.location.assign("/");
+      return;
+    }
+    if (response.status === 404) throw new Error("not_found");
+    if (!response.ok) throw new Error("archive_failed");
+    const { customer } = await response.json();
+    customerMessage.textContent = isArchiving ? "Cliente arquivado." : "Cliente restaurado.";
+    await loadCustomers();
+    await loadCustomerDetails(customer.id);
+  } catch (_error) {
+    setListMessage("Não foi possível alterar a situação do cliente.", true);
+  } finally {
+    archiveCustomerButton.disabled = false;
+    restoreCustomerButton.disabled = false;
+  }
+}
+
+archiveCustomerButton.addEventListener("click", () => changeCustomerArchive("archive"));
+restoreCustomerButton.addEventListener("click", () => changeCustomerArchive("restore"));
 
 editCustomerButton.addEventListener("click", () => {
   if (!selectedCustomer) return;
