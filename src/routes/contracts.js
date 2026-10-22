@@ -57,6 +57,11 @@ async function loadContract(pool, id) {
     "FROM contract_items WHERE contract_id = ? ORDER BY id",
     [id]
   );
+  const [statusHistory] = await pool.execute(
+    "SELECT h.status, h.created_at, u.email AS changed_by_email FROM contract_status_history h " +
+    "LEFT JOIN users u ON u.id = h.changed_by WHERE h.contract_id = ? ORDER BY h.id ASC",
+    [id]
+  );
   const [revisions] = await pool.execute(
     "SELECT r.revision_number, r.title, r.effective_date, r.end_date, r.payment_terms, r.clauses, r.total, r.created_at, u.email AS created_by_email " +
     "FROM contract_revisions r LEFT JOIN users u ON u.id = r.created_by WHERE r.contract_id = ? ORDER BY r.revision_number ASC",
@@ -86,6 +91,9 @@ async function loadContract(pool, id) {
       unitPrice: item.unit_price,
       lineTotal: item.line_total
     })),
+    statusHistory: statusHistory.map((entry) => ({
+      status: entry.status, createdAt: entry.created_at, changedByEmail: entry.changed_by_email
+    })),
     revisions: revisions.map((r) => ({
       number: r.revision_number, title: r.title, effectiveDate: r.effective_date, endDate: r.end_date,
       paymentTerms: r.payment_terms, clauses: r.clauses, total: r.total, createdAt: r.created_at,
@@ -104,7 +112,8 @@ function renderPrintDocument(contract) {
 <script src="/print.js" defer></script><link rel="stylesheet" href="/contract-print.css"><title>${escapeHtml(contract.title)} — Contrato</title>
 </head><body>
 <div class="toolbar"><button id="print-document" type="button">Imprimir / salvar como PDF</button></div>
-<p class="warning">RASCUNHO — revisar o conteúdo e buscar orientação jurídica antes de assinar.</p>
+<p class="warning">${escapeHtml(contract.status === "draft" ? "RASCUNHO — revisar o conteúdo e buscar orientação jurídica antes de assinar." :
+    contract.status === "signed" ? "REGISTRO MANUAL: informado como assinado; o FNSC-CRM não valida assinatura digital." : "CONTRATO CANCELADO.")}</p>
 <h1>${escapeHtml(contract.title)}</h1><p>Contrato #${escapeHtml(contract.id)} · Proposta #${escapeHtml(contract.proposalId)}</p>
 <h2>Partes</h2><p>${customer}</p>
 <h2>Vigência</h2><p>Início: ${escapeHtml(contract.effectiveDate || "a definir")} · Término: ${escapeHtml(contract.endDate || "a definir")}</p>
@@ -112,7 +121,8 @@ function renderPrintDocument(contract) {
 <tfoot><tr><th colspan="3">Total</th><th>${escapeHtml(formatMoney(contract.total))}</th></tr></tfoot></table>
 ${contract.paymentTerms ? `<h2>Condições de pagamento</h2><pre>${escapeHtml(contract.paymentTerms)}</pre>` : ""}
 ${contract.clauses ? `<h2>Cláusulas</h2><pre>${escapeHtml(contract.clauses)}</pre>` : ""}
-<p>Este documento está salvo como rascunho e não possui assinatura registrada no FNSC-CRM.</p>
+<p>${escapeHtml(contract.status === "draft" ? "Este documento está salvo como rascunho e não possui assinatura registrada no FNSC-CRM." :
+    contract.status === "signed" ? "Status registrado manualmente no FNSC-CRM; não há assinatura eletrônica validada." : "Este contrato foi marcado como cancelado no FNSC-CRM.")}</p>
 </body></html>`;
 }
 
@@ -182,6 +192,10 @@ function createContractsRouter({ pool, appOrigin }) {
         "INSERT INTO contract_revisions (contract_id, revision_number, title, effective_date, end_date, payment_terms, clauses, total, created_by) VALUES (?, 1, ?, NULL, NULL, NULL, NULL, ?, ?)",
         [created.insertId, proposal.title, proposal.total, req.user.id]
       );
+      await connection.execute(
+        "INSERT INTO contract_status_history (contract_id, status, changed_by) VALUES (?, 'draft', ?)",
+        [created.insertId, req.user.id]
+      );
       await connection.commit();
       res.status(201).json({ contract: { id: created.insertId, proposalId: String(proposal.id), title: proposal.title, status: "draft" } });
     } catch (error) {
@@ -213,6 +227,42 @@ function createContractsRouter({ pool, appOrigin }) {
       res.set("Cache-Control", "private, no-store");
       res.json({ contract });
     } catch (error) { next(error); }
+  });
+
+  router.post("/:id/status", sameOrigin, authenticated, async (req, res, next) => {
+    let connection;
+    try {
+      if (!/^[1-9]\d{0,19}$/.test(req.params.id)) return res.status(404).json({ error: "contract_not_found" });
+      const nextStatus = req.body && req.body.status;
+      if (nextStatus !== "signed" && nextStatus !== "cancelled") {
+        return res.status(400).json({ error: "invalid_contract_status" });
+      }
+      connection = await pool.getConnection();
+      await connection.beginTransaction();
+      const [rows] = await connection.execute("SELECT id, status FROM contracts WHERE id = ? FOR UPDATE", [req.params.id]);
+      if (!rows[0]) {
+        await connection.rollback();
+        return res.status(404).json({ error: "contract_not_found" });
+      }
+      if (rows[0].status !== "draft") {
+        await connection.rollback();
+        return res.status(409).json({ error: "contract_status_not_changeable" });
+      }
+      await connection.execute("UPDATE contracts SET status = ? WHERE id = ? AND status = 'draft'", [nextStatus, req.params.id]);
+      await connection.execute(
+        "INSERT INTO contract_status_history (contract_id, status, changed_by) VALUES (?, ?, ?)",
+        [req.params.id, nextStatus, req.user.id]
+      );
+      await connection.commit();
+      res.json({ contract: { id: req.params.id, status: nextStatus } });
+    } catch (error) {
+      if (connection) {
+        try { await connection.rollback(); } catch (_rollbackError) { /* retain original error */ }
+      }
+      next(error);
+    } finally {
+      if (connection) connection.release();
+    }
   });
 
   router.put("/:id", sameOrigin, authenticated, async (req, res, next) => {

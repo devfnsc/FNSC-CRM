@@ -18,7 +18,7 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
       { service_name: "Anúncios digitais", description: "Mídia paga.", quantity: 1, unit_price: "50.25", line_total: "50.25" }
     ],
     contract: null,
-    items: [], revisions: []
+    items: [], revisions: [], statusHistory: []
   };
   const connection = {
     beginTransaction: async () => {},
@@ -41,6 +41,12 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
           effective_date: null, end_date: null, payment_terms: null, clauses: null, total
         };
         return [{ insertId: state.contract.id }, []];
+      }
+      if (query.includes("INSERT INTO contract_status_history")) {
+        const status = query.includes("VALUES (?, 'draft', ?)") ? "draft" : values[1];
+        const userId = query.includes("VALUES (?, 'draft', ?)") ? values[1] : values[2];
+        state.statusHistory.push([values[0], status, userId]);
+        return [{ insertId: state.statusHistory.length }, []];
       }
       if (query.includes("INSERT INTO contract_revisions")) { state.revisions.push(values); return [{ insertId: state.revisions.length }, []]; }
       if (query.includes("SELECT COALESCE(MAX(revision_number)")) return [[{ latest_revision: state.revisions.length }], []];
