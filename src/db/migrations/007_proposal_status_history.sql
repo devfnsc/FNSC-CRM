@@ -14,6 +14,5 @@ CREATE TABLE IF NOT EXISTS proposal_status_history (
 INSERT INTO proposal_status_history (proposal_id, previous_status, new_status, user_id, created_at)
 SELECT p.id, NULL, p.status, NULL, p.created_at
 FROM proposals p
-WHERE NOT EXISTS (
-  SELECT 1 FROM proposal_status_history h WHERE h.proposal_id = p.id
-);
+LEFT JOIN proposal_status_history h ON h.proposal_id = p.id
+WHERE h.id IS NULL;
