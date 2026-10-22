@@ -107,6 +107,32 @@ function createCustomersRouter({ pool, appOrigin }) {
     }
   });
 
+  router.put("/:id", sameOrigin, authenticated, async (req, res, next) => {
+    try {
+      if (!/^[1-9]\d{0,19}$/.test(req.params.id)) {
+        return res.status(400).json({ error: "invalid_customer_id" });
+      }
+      if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+        return res.status(400).json({ error: "invalid_customer" });
+      }
+      const customer = validateCustomer(req.body);
+      if (!customer) return res.status(400).json({ error: "invalid_customer" });
+
+      await pool.execute(
+        "UPDATE customers SET name = ?, company_name = ?, email = ?, phone = ?, notes = ? WHERE id = ?",
+        [customer.name, customer.companyName, customer.email, customer.phone, customer.notes, req.params.id]
+      );
+      const [rows] = await pool.execute(
+        "SELECT id, name, company_name, email, phone, notes, created_at, updated_at FROM customers WHERE id = ? LIMIT 1",
+        [req.params.id]
+      );
+      if (!rows[0]) return res.status(404).json({ error: "customer_not_found" });
+      res.json({ customer: asCustomer(rows[0], true) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post("/", sameOrigin, authenticated, async (req, res, next) => {
     try {
       if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {

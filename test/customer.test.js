@@ -27,6 +27,22 @@ async function createAuthenticatedServer() {
         saved.push(values);
         return [{ insertId: 42 }, []];
       }
+      if (query.includes("UPDATE customers SET")) {
+        const [name, companyName, email, phone, notes, id] = values;
+        const customer = customers.find((entry) => String(entry.id) === String(id));
+        if (customer) {
+          Object.assign(customer, {
+            name,
+            company_name: companyName,
+            email,
+            phone,
+            notes,
+            updated_at: "2026-10-22T13:00:00.000Z"
+          });
+          return [{ affectedRows: 1 }, []];
+        }
+        return [{ affectedRows: 0 }, []];
+      }
       if (query.includes("FROM customers") && query.includes("WHERE id = ?")) {
         return [[customers.find((customer) => String(customer.id) === String(values[0]))].filter(Boolean), []];
       }
@@ -137,6 +153,62 @@ test("customer listing supports search and pagination", async () => {
   }
 });
 
+test("authenticated owner can update an existing customer", async () => {
+  const { server, baseUrl, cookie } = await createAuthenticatedServer();
+  try {
+    const response = await fetch(baseUrl + "/api/customers/42", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:3000",
+        "Cookie": cookie
+      },
+      body: JSON.stringify({
+        name: "Ana Souza Lima",
+        companyName: "Exemplo Ltda.",
+        email: "ana.lima@example.com",
+        phone: "+55 11 98888-0000",
+        notes: "Prefere contato pela manhã."
+      })
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).customer, {
+      id: 42,
+      name: "Ana Souza Lima",
+      companyName: "Exemplo Ltda.",
+      email: "ana.lima@example.com",
+      phone: "+55 11 98888-0000",
+      createdAt: "2026-10-22T12:00:00.000Z",
+      notes: "Prefere contato pela manhã.",
+      updatedAt: "2026-10-22T13:00:00.000Z"
+    });
+
+    const invalid = await fetch(baseUrl + "/api/customers/42", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:3000",
+        "Cookie": cookie
+      },
+      body: JSON.stringify({ name: "Ana Souza" })
+    });
+    assert.equal(invalid.status, 400);
+
+    const missing = await fetch(baseUrl + "/api/customers/999", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:3000",
+        "Cookie": cookie
+      },
+      body: JSON.stringify({ name: "Ana Souza", phone: "+55 11 99999-0000" })
+    });
+    assert.equal(missing.status, 404);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
 test("customer details are available only to an authenticated session", async () => {
   const { server, baseUrl, cookie } = await createAuthenticatedServer();
   try {
@@ -185,6 +257,15 @@ test("customer directory and details require an authenticated session", async ()
       const response = await fetch("http://127.0.0.1:" + server.address().port + path);
       assert.equal(response.status, 401);
     }
+    const update = await fetch("http://127.0.0.1:" + server.address().port + "/api/customers/42", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:3000"
+      },
+      body: JSON.stringify({ name: "Ana Souza", phone: "+55 11 99999-0000" })
+    });
+    assert.equal(update.status, 401);
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }

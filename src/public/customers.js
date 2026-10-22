@@ -1,4 +1,8 @@
 const customerForm = document.querySelector("#customer-form");
+const customerIdField = document.querySelector("#customer-id");
+const saveCustomerButton = document.querySelector("#save-customer");
+const cancelEditButton = document.querySelector("#cancel-customer-edit");
+const editCustomerButton = document.querySelector("#edit-customer");
 const customerMessage = document.querySelector("#customer-message");
 const searchForm = document.querySelector("#customer-search-form");
 const searchInput = document.querySelector("#customer-search");
@@ -12,6 +16,8 @@ const detailFields = document.querySelector("#customer-detail-fields");
 
 let currentPage = 1;
 let hasMore = false;
+let selectedCustomer = null;
+let editingCustomerId = null;
 
 function setListMessage(text, isError = false) {
   listMessage.textContent = text;
@@ -100,6 +106,7 @@ async function loadCustomerDetails(customerId) {
       description.textContent = value || "—";
       detailFields.append(term, description);
     }
+    selectedCustomer = customer;
     detailsPanel.hidden = false;
     detailsPanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
   } catch (_error) {
@@ -123,8 +130,11 @@ customerForm.addEventListener("submit", async (event) => {
       return;
     }
 
-    const response = await fetch("/api/customers", {
-      method: "POST",
+    const isEditing = Boolean(editingCustomerId);
+    const response = await fetch(
+      isEditing ? "/api/customers/" + encodeURIComponent(editingCustomerId) : "/api/customers",
+      {
+      method: isEditing ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       body: JSON.stringify(customer)
@@ -137,17 +147,51 @@ customerForm.addEventListener("submit", async (event) => {
       customerMessage.textContent = "Confira o nome, e-mail, telefone e observações.";
       return;
     }
-    if (!response.ok) throw new Error("create_failed");
+    if (response.status === 404) {
+      customerMessage.textContent = "Este cliente não foi encontrado.";
+      return;
+    }
+    if (!response.ok) throw new Error("save_failed");
 
-    customerMessage.textContent = "Cliente cadastrado.";
+    const result = await response.json();
+    const savedCustomerId = result.customer.id;
+    customerMessage.textContent = isEditing ? "Cadastro atualizado." : "Cliente cadastrado.";
     customerForm.reset();
+    editingCustomerId = null;
+    customerIdField.value = "";
+    saveCustomerButton.textContent = "Cadastrar cliente";
+    cancelEditButton.hidden = true;
     currentPage = 1;
     await loadCustomers();
+    await loadCustomerDetails(savedCustomerId);
   } catch (_error) {
     customerMessage.textContent = "Não foi possível cadastrar. Tente novamente.";
   } finally {
     button.disabled = false;
   }
+});
+
+editCustomerButton.addEventListener("click", () => {
+  if (!selectedCustomer) return;
+  editingCustomerId = selectedCustomer.id;
+  customerIdField.value = selectedCustomer.id;
+  for (const field of ["name", "companyName", "email", "phone", "notes"]) {
+    customerForm.elements[field].value = selectedCustomer[field] || "";
+  }
+  saveCustomerButton.textContent = "Salvar alterações";
+  cancelEditButton.hidden = false;
+  customerMessage.textContent = "Editando o cadastro selecionado.";
+  customerForm.scrollIntoView({ block: "start", behavior: "smooth" });
+  customerForm.elements.name.focus();
+});
+
+cancelEditButton.addEventListener("click", () => {
+  editingCustomerId = null;
+  customerIdField.value = "";
+  customerForm.reset();
+  saveCustomerButton.textContent = "Cadastrar cliente";
+  cancelEditButton.hidden = true;
+  customerMessage.textContent = "Edição cancelada.";
 });
 
 searchForm.addEventListener("submit", (event) => {
