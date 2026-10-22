@@ -35,9 +35,34 @@ async function createServer({ authenticated = true } = {}) {
     }
   };
   const pool = {
-    execute: async (query) => {
+    execute: async (query, values = []) => {
       if (query.includes("password_hash")) return [[{ ...user, password_hash: passwordHash }], []];
       if (query.includes("FROM users WHERE id")) return [[user], []];
+      if (query.includes("FROM proposals p JOIN customers") && query.includes("WHERE p.id = ?")) {
+        const proposal = stored.proposals.find((item) => String(item.id) === String(values[0]));
+        return [proposal ? [{
+          id: proposal.id,
+          title: proposal.title,
+          status: proposal.status,
+          valid_until: proposal.valid_until,
+          notes: proposal.notes,
+          total: proposal.total,
+          created_at: proposal.created_at,
+          customer_name: "Ana Souza",
+          customer_company: "Agência Exemplo",
+          customer_email: "ana@example.com",
+          customer_phone: "11999990000"
+        }] : [], []];
+      }
+      if (query.includes("FROM proposal_items WHERE proposal_id")) {
+        return [stored.items.map((item) => ({
+          service_name: item[2],
+          description: item[3],
+          quantity: item[4],
+          unit_price: item[5],
+          line_total: item[6]
+        })), []];
+      }
       if (query.includes("FROM proposals p JOIN customers")) {
         return [stored.proposals.map((proposal) => ({
           id: proposal.id,
@@ -133,6 +158,21 @@ test("authenticated owner creates a draft proposal with exact totals", async () 
     const listed = await fetch(baseUrl + "/api/proposals", { headers: { "Cookie": cookie } });
     assert.equal(listed.status, 200);
     assert.equal((await listed.json()).proposals[0].total, "250.25");
+
+    const detail = await fetch(baseUrl + "/api/proposals/1", { headers: { "Cookie": cookie } });
+    assert.equal(detail.status, 200);
+    const { proposal: details } = await detail.json();
+    assert.equal(details.customer.companyName, "Agência Exemplo");
+    assert.equal(details.items[0].serviceName, "Gestão de redes sociais");
+    assert.equal(details.items[0].lineTotal, "200.00");
+
+    const printable = await fetch(baseUrl + "/api/proposals/1/print", { headers: { "Cookie": cookie } });
+    assert.equal(printable.status, 200);
+    assert.match(printable.headers.get("content-type"), /text\/html/u);
+    const document = await printable.text();
+    assert.match(document, /Imprimir \/ salvar como PDF/u);
+    assert.match(document, /Rascunho — não enviada/u);
+    assert.match(document, /250,25/u);
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
@@ -177,6 +217,10 @@ test("proposals require an authenticated session", async () => {
   try {
     const listed = await fetch(baseUrl + "/api/proposals");
     assert.equal(listed.status, 401);
+    const details = await fetch(baseUrl + "/api/proposals/1");
+    assert.equal(details.status, 401);
+    const printable = await fetch(baseUrl + "/api/proposals/1/print");
+    assert.equal(printable.status, 401);
     const created = await fetch(baseUrl + "/api/proposals", {
       method: "POST",
       headers: {
