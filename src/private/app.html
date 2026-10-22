@@ -9,6 +9,7 @@
   <script src="/customers.js" defer></script>
   <script src="/services.js" defer></script>
   <script src="/contracts.js" defer></script>
+  <script src="/finance.js" defer></script>
   <script src="/proposals.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
@@ -170,6 +171,47 @@
         <p id="contract-details-message" role="status"></p>
         <div id="contract-details-content"></div>
       </section>
+    </section>
+    <section class="panel" aria-labelledby="finance-title">
+      <p class="eyebrow">Financeiro</p>
+      <h2 id="finance-title">Entradas e saídas</h2>
+      <p class="muted">Controle manual para consulta. Não substitui extrato bancário, conciliação ou escrituração contábil.</p>
+      <label for="finance-month">Mês de consulta</label>
+      <input id="finance-month" type="month">
+      <div class="finance-summary" aria-live="polite">
+        <p>Entradas: <strong id="finance-income">R$ 0,00</strong></p>
+        <p>Saídas: <strong id="finance-expenses">R$ 0,00</strong></p>
+        <p>Saldo do período: <strong id="finance-balance">R$ 0,00</strong></p>
+      </div>
+      <form id="finance-form">
+        <input id="finance-id" name="id" type="hidden">
+        <label for="finance-type">Tipo</label>
+        <select id="finance-type" name="type" required>
+          <option value="income">Entrada</option><option value="expense">Saída</option>
+        </select>
+        <label for="finance-description">Descrição</label>
+        <input id="finance-description" name="description" maxlength="160" required>
+        <label for="finance-category">Categoria</label>
+        <input id="finance-category" name="category" maxlength="80" required placeholder="Ex.: serviço, ferramenta, transporte">
+        <label for="finance-amount">Valor (R$)</label>
+        <input id="finance-amount" name="amount" type="number" min="0.01" max="99999999.99" step="0.01" required>
+        <label for="finance-date">Data</label>
+        <input id="finance-date" name="occurredOn" type="date" required>
+        <label for="finance-notes">Observações (opcional)</label>
+        <textarea id="finance-notes" name="notes" maxlength="1000" rows="2"></textarea>
+        <div class="form-actions">
+          <button id="save-finance" type="submit">Registrar lançamento</button>
+          <button id="cancel-finance-edit" type="button" hidden>Cancelar edição</button>
+        </div>
+        <p id="finance-message" role="status" aria-live="polite"></p>
+      </form>
+      <h3>Lançamentos do mês</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Ação</th></tr></thead>
+          <tbody id="finance-list"></tbody>
+        </table>
+      </div>
     </section>
     <section class="panel" aria-labelledby="customer-list-title">
       <p class="eyebrow">Carteira</p>
