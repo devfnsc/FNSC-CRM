@@ -35,7 +35,7 @@ async function loadContracts() {
       const row = document.createElement("tr");
       contractCell(row, contract.customerName);
       contractCell(row, contract.title);
-      contractCell(row, contract.status === "draft" ? "Rascunho" : contract.status);
+      contractCell(row, ({ draft: "Rascunho", signed: "Assinado (registrado manualmente)", cancelled: "Cancelado" }[contract.status] || contract.status));
       contractCell(row, contractMoney(contract.total));
       const action = document.createElement("td");
       const button = document.createElement("button");
@@ -87,7 +87,17 @@ async function showContract(id, edit = false) {
     contractText(contractDetailsContent, "p",
       contract.customer.name + (contract.customer.companyName ? " — " + contract.customer.companyName : ""));
     contractText(contractDetailsContent, "p",
-      "Status: Rascunho · Proposta #" + contract.proposalId + " · Valor: " + contractMoney(contract.total));
+      "Status: " + ({ draft: "Rascunho", signed: "Assinado (registrado manualmente)", cancelled: "Cancelado" }[contract.status] || contract.status) +
+      " · Proposta #" + contract.proposalId + " · Valor: " + contractMoney(contract.total));
+    const statusHistory = document.createElement("section");
+    contractText(statusHistory, "h5", "Histórico de status");
+    for (const event of contract.statusHistory || []) {
+      const when = event.createdAt ? new Date(event.createdAt).toLocaleString("pt-BR") : "data indisponível";
+      const who = event.changedByEmail ? " · " + event.changedByEmail : "";
+      const label = ({ draft: "Rascunho", signed: "Assinado (registro manual)", cancelled: "Cancelado" }[event.status] || event.status);
+      contractText(statusHistory, "p", label + " · " + when + who);
+    }
+    contractDetailsContent.append(statusHistory);
     const table = document.createElement("table");
     table.className = "contract-items";
     table.innerHTML = "<thead><tr><th>Serviço</th><th>Qtd.</th><th>Unitário</th><th>Subtotal</th></tr></thead>";
@@ -129,6 +139,17 @@ async function showContract(id, edit = false) {
     edit.addEventListener("click", () => fillContractForm(contract));
     contractDetailsContent.append(edit);
 
+    if (contract.status === "draft") {
+      for (const [status, label] of [["signed", "Registrar como assinado"], ["cancelled", "Cancelar rascunho"]]) {
+        const action = document.createElement("button");
+        action.type = "button";
+        action.textContent = label;
+        action.addEventListener("click", () => updateContractStatus(contract.id, status));
+        contractDetailsContent.append(action);
+      }
+      contractText(contractDetailsContent, "p", "O registro é manual e não substitui assinatura eletrônica ou validação jurídica.");
+    }
+
     const print = document.createElement("a");
     print.href = "/api/contracts/" + encodeURIComponent(contract.id) + "/print";
     print.target = "_blank";
@@ -137,10 +158,32 @@ async function showContract(id, edit = false) {
     print.className = "proposal-print-link";
     contractDetailsContent.append(print);
 
-    if (edit) fillContractForm(contract);
+    if (edit === true) fillContractForm(contract);
   } catch (_error) {
     contractDetailsMessage.textContent = "Não foi possível abrir o contrato.";
     contractDetailsMessage.dataset.state = "error";
+  }
+}
+
+async function updateContractStatus(id, status) {
+  const label = status === "signed" ? "assinado" : "cancelado";
+  if (!window.confirm("Confirmar o registro do contrato como " + label + "? Esta ação não poderá ser desfeita.")) return;
+  try {
+    const response = await fetch("/api/contracts/" + encodeURIComponent(id) + "/status", {
+      method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin",
+      body: JSON.stringify({ status })
+    });
+    if (response.status === 401) return window.location.assign("/");
+    if (response.status === 400) throw new Error("invalid_status");
+    if (!response.ok) throw new Error("status_update_failed");
+    await loadContracts();
+    await showContract(id);
+    contractMessage.textContent = status === "signed"
+      ? "Contrato registrado como assinado manualmente." : "Rascunho do contrato cancelado.";
+    contractMessage.dataset.state = "success";
+  } catch (_error) {
+    contractMessage.textContent = "Não foi possível atualizar o status do contrato.";
+    contractMessage.dataset.state = "error";
   }
 }
 
