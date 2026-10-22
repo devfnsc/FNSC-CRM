@@ -12,7 +12,7 @@
 3. Gere um segredo de sessão com `node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))"` e coloque o resultado em `SESSION_SECRET`.
 4. Crie o banco e um usuário MySQL dedicado, com permissões somente no banco do CRM.
 5. Execute o esquema inicial: `mysql -u SEU_USUARIO -p fnsc_crm < src/db/schema.sql`.
-6. Execute as migrações ainda não aplicadas, em ordem: `002_company_profile.sql`, `003_customers.sql`, `004_customer_archive.sql`, `005_services.sql`, `006_proposals.sql` e `007_proposal_status_history.sql`.
+6. Execute as migrações ainda não aplicadas, em ordem: `002_company_profile.sql`, `003_customers.sql`, `004_customer_archive.sql`, `005_services.sql`, `006_proposals.sql` e `007_proposal_status_history.sql` e `008_contract_drafts.sql`.
 7. Crie a conta inicial: `node scripts/create-admin.js`.
 8. Inicie o servidor com `npm run dev` e abra `http://localhost:3000`.
 9. Rode os testes com `npm test`.
