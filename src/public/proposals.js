@@ -31,6 +31,35 @@ function addProposalAction(row, proposal) {
   row.append(cell);
 }
 
+
+async function updateProposalStatus(id, status, actionLabel) {
+  if (!window.confirm(actionLabel + "? O sistema apenas registrará esta informação.")) return;
+  try {
+    const response = await fetch("/api/proposals/" + encodeURIComponent(id) + "/status", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ status })
+    });
+    if (response.status === 401) {
+      window.location.assign("/");
+      return;
+    }
+    if (response.status === 409) {
+      await showProposalDetails(id);
+      proposalDetailsMessage.textContent = "O status mudou e esta ação não é mais permitida.";
+      proposalDetailsMessage.dataset.state = "error";
+      return;
+    }
+    if (!response.ok) throw new Error("status_update_failed");
+    await loadProposals();
+    await showProposalDetails(id);
+  } catch (_error) {
+    proposalDetailsMessage.textContent = "Não foi possível atualizar o status.";
+    proposalDetailsMessage.dataset.state = "error";
+  }
+}
+
 function appendDetailText(parent, tagName, text, className) {
   const element = document.createElement(tagName);
   element.textContent = text || "—";
@@ -85,7 +114,7 @@ async function showProposalDetails(id) {
     appendDetailText(proposalDetailsContent, "p",
       proposal.customer.name + (proposal.customer.companyName ? " — " + proposal.customer.companyName : ""));
     appendDetailText(proposalDetailsContent, "p",
-      "Status: " + (proposal.status === "draft" ? "Rascunho" : proposal.status) +
+      "Status: " + statusLabel(proposal.status) +
       " · Validade: " + (proposal.validUntil || "não informada") +
       " · Total: " + formatMoney(proposal.total));
     const table = document.createElement("table");
@@ -109,6 +138,42 @@ async function showProposalDetails(id) {
     editButton.addEventListener("click", () => enterProposalEdit(proposal));
     proposalDetailsContent.append(editButton);
 
+
+    const statusActions = document.createElement("div");
+    statusActions.className = "proposal-status-actions";
+    const addStatusAction = (label, status) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.addEventListener("click", () => updateProposalStatus(proposal.id, status, label));
+      statusActions.append(button);
+    };
+    if (proposal.status === "draft") addStatusAction("Registrar envio realizado", "sent");
+    if (proposal.status === "sent") {
+      addStatusAction("Registrar aceite", "accepted");
+      addStatusAction("Registrar recusa", "rejected");
+    }
+    if (statusActions.childElementCount) {
+      appendDetailText(proposalDetailsContent, "p", "Estas ações apenas registram o que aconteceu fora do CRM; nenhum e-mail é enviado.");
+      proposalDetailsContent.append(statusActions);
+    }
+
+    appendDetailText(proposalDetailsContent, "h4", "Histórico do status");
+    const historyList = document.createElement("ol");
+    historyList.className = "proposal-status-history";
+    for (const event of proposal.statusHistory || []) {
+      const item = document.createElement("li");
+      const transition = event.previousStatus
+        ? statusLabel(event.previousStatus) + " → " + statusLabel(event.newStatus)
+        : "Criada como " + statusLabel(event.newStatus);
+      const timestamp = new Date(event.createdAt);
+      const date = Number.isNaN(timestamp.getTime()) ? "" :
+        new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(timestamp);
+      item.textContent = [transition, date, event.actorEmail].filter(Boolean).join(" · ");
+      historyList.append(item);
+    }
+    proposalDetailsContent.append(historyList);
+
     const link = document.createElement("a");
     link.href = "/api/proposals/" + encodeURIComponent(proposal.id) + "/print";
     link.target = "_blank";
@@ -123,6 +188,10 @@ async function showProposalDetails(id) {
 }
 
 
+
+function statusLabel(status) {
+  return ({ draft: "Rascunho", sent: "Enviada", accepted: "Aceita", rejected: "Recusada" })[status] || status;
+}
 
 function formatMoney(value) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
@@ -241,7 +310,7 @@ async function loadProposals() {
       addProposalCell(row, proposal.customerName);
       addProposalCell(row, proposal.title);
       addProposalCell(row, proposal.validUntil || "Sem prazo");
-      addProposalCell(row, proposal.status === "draft" ? "Rascunho" : proposal.status);
+      addProposalCell(row, statusLabel(proposal.status));
       addProposalCell(row, formatMoney(proposal.total));
       addProposalAction(row, proposal);
       proposalList.append(row);

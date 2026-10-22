@@ -19,6 +19,10 @@ function toCents(value) {
   return BigInt(whole) * 100n + BigInt((fraction + "00").slice(0, 2));
 }
 
+function statusLabel(status) {
+  return ({ draft: "Rascunho", sent: "Enviada", accepted: "Aceita", rejected: "Recusada" })[status] || status;
+}
+
 function fromCents(cents) {
   return (cents / 100n).toString() + "." + (cents % 100n).toString().padStart(2, "0");
 }
@@ -86,6 +90,12 @@ async function loadProposal(pool, id) {
     "FROM proposal_items WHERE proposal_id = ? ORDER BY id",
     [id]
   );
+  const [history] = await pool.execute(
+    "SELECT h.previous_status, h.new_status, h.created_at, u.email AS actor_email " +
+    "FROM proposal_status_history h LEFT JOIN users u ON u.id = h.user_id " +
+    "WHERE h.proposal_id = ? ORDER BY h.created_at, h.id",
+    [id]
+  );
   return {
     id: rows[0].id,
     customerId: String(rows[0].customer_id),
@@ -101,6 +111,12 @@ async function loadProposal(pool, id) {
       email: rows[0].customer_email,
       phone: rows[0].customer_phone
     },
+    statusHistory: history.map((event) => ({
+      previousStatus: event.previous_status,
+      newStatus: event.new_status,
+      createdAt: event.created_at,
+      actorEmail: event.actor_email
+    })),
     items: items.map((item) => ({
       serviceId: item.service_id === null ? null : String(item.service_id),
       serviceName: item.service_name,
@@ -113,7 +129,7 @@ async function loadProposal(pool, id) {
 }
 
 function renderPrintDocument(proposal) {
-  const status = proposal.status === "draft" ? "Rascunho — não enviada" : proposal.status;
+  const status = proposal.status === "draft" ? "Rascunho — não enviada" : statusLabel(proposal.status);
   const createdDate = proposal.createdAt instanceof Date ? proposal.createdAt.toISOString().slice(0, 10) : String(proposal.createdAt).slice(0, 10);
   const items = proposal.items.map((item) => `
     <tr>
@@ -168,7 +184,7 @@ function renderPrintDocument(proposal) {
     </table>
   </section>
   ${proposal.notes ? `<section><h2>Observações</h2><p class="notes">${escapeHtml(proposal.notes)}</p></section>` : ""}
-  <p class="muted" style="margin-top:2rem">Documento de revisão gerado pelo FNSC-CRM. Esta proposta permanece como rascunho e não foi enviada ao cliente.</p>
+  <p class="muted" style="margin-top:2rem">Documento de revisão gerado pelo FNSC-CRM. ${status === "Rascunho — não enviada" ? "Esta proposta permanece como rascunho e não foi enviada ao cliente." : "Status registrado: " + escapeHtml(status) + ". Este documento não é um contrato."}</p>
 </body>
 </html>`;
 }
@@ -317,6 +333,55 @@ function createProposalsRouter({ pool, appOrigin }) {
     }
   });
 
+
+  router.put("/:id/status", sameOrigin, authenticated, async (req, res, next) => {
+    let connection;
+    try {
+      if (!/^[1-9]\d{0,19}$/.test(req.params.id) ||
+          !req.body || typeof req.body.status !== "string" ||
+          !["sent", "accepted", "rejected"].includes(req.body.status)) {
+        return res.status(400).json({ error: "invalid_status" });
+      }
+
+      connection = await pool.getConnection();
+      await connection.beginTransaction();
+      const [rows] = await connection.execute(
+        "SELECT id, status FROM proposals WHERE id = ? FOR UPDATE",
+        [req.params.id]
+      );
+      if (!rows[0]) {
+        await connection.rollback();
+        return res.status(404).json({ error: "proposal_not_found" });
+      }
+      const currentStatus = rows[0].status;
+      const allowed = currentStatus === "draft"
+        ? req.body.status === "sent"
+        : currentStatus === "sent" && ["accepted", "rejected"].includes(req.body.status);
+      if (!allowed) {
+        await connection.rollback();
+        return res.status(409).json({ error: "invalid_status_transition" });
+      }
+
+      await connection.execute(
+        "UPDATE proposals SET status = ? WHERE id = ?",
+        [req.body.status, req.params.id]
+      );
+      await connection.execute(
+        "INSERT INTO proposal_status_history (proposal_id, previous_status, new_status, user_id) VALUES (?, ?, ?, ?)",
+        [req.params.id, currentStatus, req.body.status, req.user.id]
+      );
+      await connection.commit();
+      res.json({ proposal: { id: req.params.id, status: req.body.status } });
+    } catch (error) {
+      if (connection) {
+        try { await connection.rollback(); } catch (_rollbackError) { /* retain original error */ }
+      }
+      next(error);
+    } finally {
+      if (connection) connection.release();
+    }
+  });
+
   router.post("/", sameOrigin, authenticated, async (req, res, next) => {
     let connection;
     try {
@@ -369,6 +434,10 @@ function createProposalsRouter({ pool, appOrigin }) {
           [result.insertId, item.serviceId, item.serviceName, item.description, item.quantity, item.unitPrice, item.lineTotal]
         );
       }
+      await connection.execute(
+        "INSERT INTO proposal_status_history (proposal_id, previous_status, new_status, user_id) VALUES (?, NULL, 'draft', ?)",
+        [result.insertId, req.user.id]
+      );
       await connection.commit();
       res.status(201).json({
         proposal: {
@@ -395,4 +464,4 @@ function createProposalsRouter({ pool, appOrigin }) {
   return router;
 }
 
-module.exports = { createProposalsRouter, validateProposal, toCents, fromCents, escapeHtml, formatMoney, renderPrintDocument };
+module.exports = { createProposalsRouter, validateProposal, toCents, fromCents, escapeHtml, formatMoney, renderPrintDocument, statusLabel };

@@ -65,3 +65,7 @@ td button { white-space: nowrap; }
 .proposal-print-link { display: inline-block; margin: .45rem; color: #244b9b; font-weight: 700; }
 #proposal-details-message[data-state="error"] { color: #a22; }
 @media print { .app-header, .app-content { display: none; } }
+
+.proposal-status-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin: .8rem 0; }
+.proposal-status-actions button { margin: 0; }
+.proposal-status-history { display: grid; gap: .4rem; padding-left: 1.4rem; color: #46536b; }

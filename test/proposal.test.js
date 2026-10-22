@@ -7,7 +7,7 @@ const { createApp } = require("../src/server");
 async function createServer({ authenticated = true } = {}) {
   const password = "correct-horse-battery-93";
   const passwordHash = await bcrypt.hash(password, 4);
-  const stored = { proposals: [], items: [] };
+  const stored = { proposals: [], items: [], history: [] };
   const user = { id: 7, email: "admin@example.com" };
   const connection = {
     beginTransaction: async () => {},
@@ -24,6 +24,25 @@ async function createServer({ authenticated = true } = {}) {
         const services = { "10": { id: 10, name: "Gestão de redes sociais", description: "Conteúdo mensal." },
           "11": { id: 11, name: "Anúncios digitais", description: "Planejamento de mídia." } };
         return [[services[String(values[0])]].filter(Boolean), []];
+      }
+      if (query.includes("UPDATE proposals SET status = ?")) {
+        const [status, id] = values;
+        const proposal = stored.proposals.find((item) => String(item.id) === String(id));
+        proposal.status = status;
+        return [{ affectedRows: 1 }, []];
+      }
+      if (query.includes("INSERT INTO proposal_status_history")) {
+        let proposalId, previousStatus, newStatus, userId;
+        if (query.includes("VALUES (?, NULL, 'draft', ?)")) {
+          [proposalId, userId] = values;
+          previousStatus = null;
+          newStatus = "draft";
+        } else {
+          [proposalId, previousStatus, newStatus, userId] = values;
+        }
+        stored.history.push({ proposal_id: proposalId, previous_status: previousStatus, new_status: newStatus,
+          created_at: new Date().toISOString(), user_id: userId });
+        return [{ insertId: stored.history.length }, []];
       }
       if (query.includes("UPDATE proposals SET")) {
         const [customerId, title, validUntil, notes, total, id] = values;
@@ -69,6 +88,14 @@ async function createServer({ authenticated = true } = {}) {
           customer_email: "ana@example.com",
           customer_phone: "11999990000"
         }] : [], []];
+      }
+      if (query.includes("FROM proposal_status_history")) {
+        return [stored.history.map((event) => ({
+          previous_status: event.previous_status,
+          new_status: event.new_status,
+          created_at: event.created_at,
+          actor_email: event.user_id ? user.email : null
+        })), []];
       }
       if (query.includes("FROM proposal_items WHERE proposal_id")) {
         return [stored.items.map((item) => ({
@@ -180,6 +207,7 @@ test("authenticated owner creates a draft proposal with exact totals", async () 
     assert.equal(detail.status, 200);
     const { proposal: details } = await detail.json();
     assert.equal(details.customer.companyName, "Agência Exemplo");
+    assert.equal(details.statusHistory[0].newStatus, "draft");
     assert.equal(details.items[0].serviceName, "Gestão de redes sociais");
     assert.equal(details.items[0].lineTotal, "200.00");
 
@@ -212,15 +240,40 @@ test("authenticated owner creates a draft proposal with exact totals", async () 
     assert.equal(updatedProposal.items[0].serviceId, "10");
     assert.equal(stored.items.length, 1);
 
-    stored.proposals[0].status = "accepted";
-    const locked = await fetch(baseUrl + "/api/proposals/1", {
+    const directAccept = await fetch(baseUrl + "/api/proposals/1/status", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Origin": "http://localhost:3000",
-        "Cookie": cookie
-      },
-      body: JSON.stringify({ ...proposalPayload, customerId: "42" })
+      headers: { "Content-Type": "application/json", "Origin": "http://localhost:3000", "Cookie": cookie },
+      body: JSON.stringify({ status: "accepted" })
+    });
+    assert.equal(directAccept.status, 409);
+
+    const sent = await fetch(baseUrl + "/api/proposals/1/status", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Origin": "http://localhost:3000", "Cookie": cookie },
+      body: JSON.stringify({ status: "sent" })
+    });
+    assert.equal(sent.status, 200);
+    assert.equal((await sent.json()).proposal.status, "sent");
+
+    const accepted = await fetch(baseUrl + "/api/proposals/1/status", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Origin": "http://localhost:3000", "Cookie": cookie },
+      body: JSON.stringify({ status: "accepted" })
+    });
+    assert.equal(accepted.status, 200);
+    assert.deepEqual(stored.history.map((event) => [event.previous_status, event.new_status]), [
+      [null, "draft"], ["draft", "sent"], ["sent", "accepted"]
+    ]);
+    assert.equal(stored.history.length, 3);
+    const finalDetails = await fetch(baseUrl + "/api/proposals/1", { headers: { "Cookie": cookie } });
+    const { proposal: finalProposal } = await finalDetails.json();
+    assert.equal(finalProposal.status, "accepted");
+    assert.equal(finalProposal.statusHistory.length, 3);
+
+    const locked = await fetch(baseUrl + "/api/proposals/1/status", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Origin": "http://localhost:3000", "Cookie": cookie },
+      body: JSON.stringify({ status: "rejected" })
     });
     assert.equal(locked.status, 409);
   } finally {
@@ -267,6 +320,12 @@ test("proposals require an authenticated session", async () => {
   try {
     const listed = await fetch(baseUrl + "/api/proposals");
     assert.equal(listed.status, 401);
+    const statusUpdate = await fetch(baseUrl + "/api/proposals/1/status", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Origin": "http://localhost:3000" },
+      body: JSON.stringify({ status: "sent" })
+    });
+    assert.equal(statusUpdate.status, 401);
     const update = await fetch(baseUrl + "/api/proposals/1", {
       method: "PUT",
       headers: { "Content-Type": "application/json", "Origin": "http://localhost:3000" },
