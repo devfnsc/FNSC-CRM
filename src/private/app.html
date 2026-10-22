@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/app.css">
   <script src="/company-profile.js" defer></script>
   <script src="/customers.js" defer></script>
+  <script src="/services.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body class="app-page">
@@ -63,6 +64,29 @@
         </div>
         <p id="customer-message" role="status" aria-live="polite"></p>
       </form>
+    </section>
+    <section class="panel" aria-labelledby="service-title">
+      <p class="eyebrow">Portfólio</p>
+      <h2 id="service-title">Serviços oferecidos</h2>
+      <p class="muted">Cadastre os serviços para reutilizá-los em futuras propostas. Valor de referência é opcional.</p>
+      <form id="service-form">
+        <label for="service-name">Nome do serviço <span aria-hidden="true">*</span></label>
+        <input id="service-name" name="name" maxlength="120" required>
+        <label for="service-description">Descrição</label>
+        <textarea id="service-description" name="description" maxlength="2000" rows="3"></textarea>
+        <label for="service-price">Valor de referência (R$)</label>
+        <input id="service-price" name="referencePrice" type="number" min="0" max="99999999.99" step="0.01" placeholder="Deixe em branco para sob consulta">
+        <button id="save-service" type="submit">Cadastrar serviço</button>
+        <p id="service-message" role="status" aria-live="polite"></p>
+      </form>
+      <h3>Catálogo cadastrado</h3>
+      <p id="service-list-message" role="status" aria-live="polite"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Serviço</th><th>Descrição</th><th>Valor de referência</th></tr></thead>
+          <tbody id="service-list"></tbody>
+        </table>
+      </div>
     </section>
     <section class="panel" aria-labelledby="customer-list-title">
       <p class="eyebrow">Carteira</p>
