@@ -46,3 +46,6 @@ td button { white-space: nowrap; }
 .detail-actions button { margin: 0; }
 #archive-customer { background: #8a3b2f; }
 #restore-customer { background: #287344; }
+
+#service-message { color: #18663a; }
+#service-list-message[data-state="error"] { color: #a22; }

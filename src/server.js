@@ -9,6 +9,7 @@ const { createPool } = require("./config/database");
 const { createAuthRouter } = require("./routes/auth");
 const { createCompanyRouter } = require("./routes/company");
 const { createCustomersRouter } = require("./routes/customers");
+const { createServicesRouter } = require("./routes/services");
 const { requireAuth } = require("./middleware/auth");
 
 function createApp({ pool, sessionStore, env = process.env }) {
@@ -40,6 +41,7 @@ function createApp({ pool, sessionStore, env = process.env }) {
   app.use("/api/auth", createAuthRouter({ pool, appOrigin: env.APP_ORIGIN }));
   app.use("/api/company", createCompanyRouter({ pool, appOrigin: env.APP_ORIGIN }));
   app.use("/api/customers", createCustomersRouter({ pool, appOrigin: env.APP_ORIGIN }));
+  app.use("/api/services", createServicesRouter({ pool, appOrigin: env.APP_ORIGIN }));
   app.use(express.static(path.join(__dirname, "public"), { index: "index.html" }));
   app.get("/app", requireAuth(pool), (_req, res) => {
     res.sendFile(path.join(__dirname, "private", "app.html"));
