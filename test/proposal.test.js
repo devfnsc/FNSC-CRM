@@ -168,7 +168,7 @@ test("authenticated owner creates a draft proposal with exact totals", async () 
 
     const printable = await fetch(baseUrl + "/api/proposals/1/print", { headers: { "Cookie": cookie } });
     assert.equal(printable.status, 200);
-    assert.match(printable.headers.get("content-type"), /text\\/html/u);
+    assert.match(printable.headers.get("content-type"), /text\/html/u);
     const document = await printable.text();
     assert.match(document, /Imprimir \/ salvar como PDF/u);
     assert.match(document, /Rascunho — não enviada/u);
