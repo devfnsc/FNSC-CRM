@@ -13,6 +13,7 @@ const { createServicesRouter } = require("./routes/services");
 const { createProposalsRouter } = require("./routes/proposals");
 const { createContractsRouter } = require("./routes/contracts");
 const { createFinanceRouter } = require("./routes/finance");
+const { createOnboardingRouter } = require("./routes/onboarding");
 const { requireAuth } = require("./middleware/auth");
 
 function createApp({ pool, sessionStore, env = process.env }) {
@@ -48,6 +49,7 @@ function createApp({ pool, sessionStore, env = process.env }) {
   app.use("/api/proposals", createProposalsRouter({ pool, appOrigin: env.APP_ORIGIN }));
   app.use("/api/contracts", createContractsRouter({ pool, appOrigin: env.APP_ORIGIN }));
   app.use("/api/finance", createFinanceRouter({ pool, appOrigin: env.APP_ORIGIN }));
+  app.use("/api/onboarding", createOnboardingRouter({ pool, appOrigin: env.APP_ORIGIN }));
   app.use(express.static(path.join(__dirname, "public"), { index: "index.html" }));
   app.get("/app", requireAuth(pool), (_req, res) => {
     res.sendFile(path.join(__dirname, "private", "app.html"));
