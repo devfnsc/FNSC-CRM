@@ -116,6 +116,7 @@ async function loadCustomerDetails(customerId) {
     archiveCustomerButton.hidden = Boolean(customer.archivedAt);
     restoreCustomerButton.hidden = !customer.archivedAt;
     detailsPanel.hidden = false;
+    window.dispatchEvent(new CustomEvent("customer:opened", { detail: customer }));
     detailsPanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
   } catch (_error) {
     setListMessage("Não foi possível abrir os detalhes deste cliente.", true);
