@@ -26,10 +26,86 @@ function validateCustomer(body) {
   return { name, companyName, email, phone, notes };
 }
 
+function asCustomer(row, includeNotes = false) {
+  const customer = {
+    id: row.id,
+    name: row.name,
+    companyName: row.company_name,
+    email: row.email,
+    phone: row.phone,
+    createdAt: row.created_at
+  };
+  if (includeNotes) {
+    customer.notes = row.notes;
+    customer.updatedAt = row.updated_at;
+  }
+  return customer;
+}
+
 function createCustomersRouter({ pool, appOrigin }) {
   const router = express.Router();
   const authenticated = requireAuth(pool);
   const sameOrigin = requireSameOrigin(appOrigin);
+
+  router.get("/", authenticated, async (req, res, next) => {
+    try {
+      const page = req.query.page === undefined ? 1 : Number(req.query.page);
+      const limit = req.query.limit === undefined ? 20 : Number(req.query.limit);
+      const rawSearch = req.query.q === undefined ? "" : req.query.q;
+      if (typeof rawSearch !== "string") {
+        return res.status(400).json({ error: "invalid_customer_query" });
+      }
+      const search = rawSearch.trim();
+
+      if (!Number.isSafeInteger(page) || page < 1 ||
+          !Number.isSafeInteger(limit) || limit < 1 || limit > 100 ||
+          search.length > 120) {
+        return res.status(400).json({ error: "invalid_customer_query" });
+      }
+
+      const offset = (page - 1) * limit;
+      if (!Number.isSafeInteger(offset)) {
+        return res.status(400).json({ error: "invalid_customer_query" });
+      }
+
+      let sql = "SELECT id, name, company_name, email, phone, created_at FROM customers";
+      const values = [];
+      if (search) {
+        sql += " WHERE name LIKE ? OR company_name LIKE ? OR email LIKE ? OR phone LIKE ?";
+        const term = "%" + search + "%";
+        values.push(term, term, term, term);
+      }
+      sql += " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?";
+      values.push(limit + 1, offset);
+
+      const [rows] = await pool.execute(sql, values);
+      const hasMore = rows.length > limit;
+      res.json({
+        customers: rows.slice(0, limit).map((row) => asCustomer(row)),
+        page,
+        limit,
+        hasMore
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id", authenticated, async (req, res, next) => {
+    try {
+      if (!/^[1-9]\d{0,19}$/.test(req.params.id)) {
+        return res.status(400).json({ error: "invalid_customer_id" });
+      }
+      const [rows] = await pool.execute(
+        "SELECT id, name, company_name, email, phone, notes, created_at, updated_at FROM customers WHERE id = ? LIMIT 1",
+        [req.params.id]
+      );
+      if (!rows[0]) return res.status(404).json({ error: "customer_not_found" });
+      res.json({ customer: asCustomer(rows[0], true) });
+    } catch (error) {
+      next(error);
+    }
+  });
 
   router.post("/", sameOrigin, authenticated, async (req, res, next) => {
     try {
