@@ -72,6 +72,9 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
       if (query.includes("FROM contracts WHERE id")) {
         return [state.contract && String(state.contract.id) === String(values[0]) ? [{ ...state.contract }] : [], []];
       }
+      if (query.includes("FROM contract_status_history")) return [state.statusHistory.map((v) => ({
+        status: v[1], created_at: "2026-10-22", changed_by_email: "admin@example.com"
+      })), []];
       if (query.includes("FROM contract_revisions")) return [state.revisions.map((v, i) => {
         const initialRevision = v.length === 4;
         return {
