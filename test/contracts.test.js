@@ -18,7 +18,7 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
       { service_name: "Anúncios digitais", description: "Mídia paga.", quantity: 1, unit_price: "50.25", line_total: "50.25" }
     ],
     contract: null,
-    items: [], revisions: []
+    items: [], revisions: [], statusHistory: []
   };
   const connection = {
     beginTransaction: async () => {},
