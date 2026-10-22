@@ -8,6 +8,7 @@
   <script src="/company-profile.js" defer></script>
   <script src="/customers.js" defer></script>
   <script src="/services.js" defer></script>
+  <script src="/contracts.js" defer></script>
   <script src="/proposals.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
@@ -133,6 +134,41 @@
         <h3 id="proposal-details-title">Detalhes da proposta</h3>
         <p id="proposal-details-message" role="status"></p>
         <div id="proposal-details-content"></div>
+      </section>
+    </section>
+    <section class="panel" aria-labelledby="contract-title">
+      <p class="eyebrow">Formalização</p>
+      <h2 id="contract-title">Contratos</h2>
+      <p class="muted">Gere rascunhos a partir de propostas aceitas. O CRM não fornece aconselhamento jurídico nem registra assinaturas.</p>
+      <p id="contract-message" role="status" aria-live="polite"></p>
+      <form id="contract-form" hidden>
+        <input id="contract-id" name="id" type="hidden">
+        <label for="contract-name">Título do contrato <span aria-hidden="true">*</span></label>
+        <input id="contract-name" name="title" maxlength="160" required>
+        <label for="contract-effective-date">Início da vigência</label>
+        <input id="contract-effective-date" name="effectiveDate" type="date">
+        <label for="contract-end-date">Término da vigência</label>
+        <input id="contract-end-date" name="endDate" type="date">
+        <label for="contract-payment-terms">Condições de pagamento</label>
+        <textarea id="contract-payment-terms" name="paymentTerms" maxlength="1000" rows="3"></textarea>
+        <label for="contract-clauses">Cláusulas e condições</label>
+        <textarea id="contract-clauses" name="clauses" maxlength="10000" rows="8" placeholder="Insira o texto revisado pelo responsável. Nenhuma cláusula jurídica é gerada automaticamente."></textarea>
+        <div class="form-actions">
+          <button id="save-contract" type="submit">Salvar rascunho</button>
+          <button id="cancel-contract-edit" type="button">Cancelar edição</button>
+        </div>
+      </form>
+      <h3>Contratos cadastrados</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cliente</th><th>Contrato</th><th>Status</th><th>Valor</th><th>Ação</th></tr></thead>
+          <tbody id="contract-list"></tbody>
+        </table>
+      </div>
+      <section id="contract-details" class="proposal-details" aria-live="polite" hidden>
+        <h3>Detalhes do contrato</h3>
+        <p id="contract-details-message" role="status"></p>
+        <div id="contract-details-content"></div>
       </section>
     </section>
     <section class="panel" aria-labelledby="customer-list-title">

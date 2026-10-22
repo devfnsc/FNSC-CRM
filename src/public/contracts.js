@@ -1,0 +1,206 @@
+const contractForm = document.querySelector("#contract-form");
+const contractList = document.querySelector("#contract-list");
+const contractMessage = document.querySelector("#contract-message");
+const contractDetails = document.querySelector("#contract-details");
+const contractDetailsMessage = document.querySelector("#contract-details-message");
+const contractDetailsContent = document.querySelector("#contract-details-content");
+const cancelContractEdit = document.querySelector("#cancel-contract-edit");
+
+function contractMoney(value) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
+}
+
+function contractCell(row, value) {
+  const cell = document.createElement("td");
+  cell.textContent = value || "—";
+  row.append(cell);
+}
+
+function contractText(parent, tag, value, className) {
+  const node = document.createElement(tag);
+  node.textContent = value || "—";
+  if (className) node.className = className;
+  parent.append(node);
+  return node;
+}
+
+async function loadContracts() {
+  contractList.replaceChildren();
+  try {
+    const response = await fetch("/api/contracts", { credentials: "same-origin" });
+    if (response.status === 401) return window.location.assign("/");
+    if (!response.ok) throw new Error("list_failed");
+    const { contracts } = await response.json();
+    for (const contract of contracts) {
+      const row = document.createElement("tr");
+      contractCell(row, contract.customerName);
+      contractCell(row, contract.title);
+      contractCell(row, contract.status === "draft" ? "Rascunho" : contract.status);
+      contractCell(row, contractMoney(contract.total));
+      const action = document.createElement("td");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Abrir";
+      button.addEventListener("click", () => showContract(contract.id));
+      action.append(button);
+      row.append(action);
+      contractList.append(row);
+    }
+    if (!contracts.length) {
+      const row = document.createElement("tr");
+      const cell = document.createElement("td");
+      cell.colSpan = 5;
+      cell.textContent = "Nenhum contrato cadastrado.";
+      row.append(cell);
+      contractList.append(row);
+    }
+  } catch (_error) {
+    contractMessage.textContent = "Não foi possível carregar os contratos.";
+    contractMessage.dataset.state = "error";
+  }
+}
+
+function fillContractForm(contract) {
+  contractForm.elements.id.value = contract.id;
+  contractForm.elements.title.value = contract.title;
+  contractForm.elements.effectiveDate.value = contract.effectiveDate || "";
+  contractForm.elements.endDate.value = contract.endDate || "";
+  contractForm.elements.paymentTerms.value = contract.paymentTerms || "";
+  contractForm.elements.clauses.value = contract.clauses || "";
+  contractForm.hidden = false;
+  contractForm.scrollIntoView({ behavior: "smooth", block: "start" });
+  contractForm.elements.title.focus({ preventScroll: true });
+}
+
+async function showContract(id, edit = false) {
+  contractDetails.hidden = false;
+  contractDetailsMessage.textContent = "Carregando contrato...";
+  contractDetailsContent.replaceChildren();
+  try {
+    const response = await fetch("/api/contracts/" + encodeURIComponent(id), { credentials: "same-origin" });
+    if (response.status === 401) return window.location.assign("/");
+    if (response.status === 404) throw new Error("not_found");
+    if (!response.ok) throw new Error("details_failed");
+    const { contract } = await response.json();
+    contractDetailsMessage.textContent = "";
+    contractText(contractDetailsContent, "h4", contract.title);
+    contractText(contractDetailsContent, "p",
+      contract.customer.name + (contract.customer.companyName ? " — " + contract.customer.companyName : ""));
+    contractText(contractDetailsContent, "p",
+      "Status: Rascunho · Proposta #" + contract.proposalId + " · Valor: " + contractMoney(contract.total));
+    const table = document.createElement("table");
+    table.className = "contract-items";
+    table.innerHTML = "<thead><tr><th>Serviço</th><th>Qtd.</th><th>Unitário</th><th>Subtotal</th></tr></thead>";
+    const body = document.createElement("tbody");
+    for (const item of contract.items) {
+      const row = document.createElement("tr");
+      contractCell(row, item.serviceName);
+      contractCell(row, item.quantity);
+      contractCell(row, contractMoney(item.unitPrice));
+      contractCell(row, contractMoney(item.lineTotal));
+      body.append(row);
+    }
+    table.append(body);
+    contractDetailsContent.append(table);
+    if (contract.paymentTerms) contractText(contractDetailsContent, "p", "Pagamento: " + contract.paymentTerms);
+    if (contract.clauses) contractText(contractDetailsContent, "pre", contract.clauses, "contract-clauses");
+
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.textContent = "Editar rascunho";
+    edit.disabled = contract.status !== "draft";
+    edit.addEventListener("click", () => fillContractForm(contract));
+    contractDetailsContent.append(edit);
+
+    const print = document.createElement("a");
+    print.href = "/api/contracts/" + encodeURIComponent(contract.id) + "/print";
+    print.target = "_blank";
+    print.rel = "noopener";
+    print.textContent = "Imprimir / salvar como PDF";
+    print.className = "proposal-print-link";
+    contractDetailsContent.append(print);
+
+    if (edit) fillContractForm(contract);
+  } catch (_error) {
+    contractDetailsMessage.textContent = "Não foi possível abrir o contrato.";
+    contractDetailsMessage.dataset.state = "error";
+  }
+}
+
+async function startContractFromProposal(proposalId) {
+  contractMessage.textContent = "Criando rascunho do contrato...";
+  try {
+    const response = await fetch("/api/contracts/from-proposal/" + encodeURIComponent(proposalId), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: "{}"
+    });
+    if (response.status === 401) return window.location.assign("/");
+    const payload = await response.json();
+    if (response.status === 409 && payload.contractId) {
+      contractMessage.textContent = "Esta proposta já possui um contrato.";
+      contractMessage.dataset.state = "error";
+      await loadContracts();
+      return;
+    }
+    if (response.status === 409) {
+      contractMessage.textContent = "Somente uma proposta aceita pode gerar contrato.";
+      contractMessage.dataset.state = "error";
+      return;
+    }
+    if (!response.ok) throw new Error("create_failed");
+    contractMessage.dataset.state = "success";
+    contractMessage.textContent = "Contrato criado como rascunho. Revise os campos antes de compartilhar ou assinar.";
+    await loadContracts();
+    await showContract(payload.contract.id, true);
+  } catch (_error) {
+    contractMessage.textContent = "Não foi possível criar o contrato.";
+    contractMessage.dataset.state = "error";
+  }
+}
+
+window.startContractFromProposal = startContractFromProposal;
+
+contractForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = contractForm.querySelector("#save-contract");
+  button.disabled = true;
+  contractMessage.textContent = "";
+  try {
+    const contract = Object.fromEntries(["title", "effectiveDate", "endDate", "paymentTerms", "clauses"]
+      .map((name) => [name, contractForm.elements[name].value]));
+    const id = contractForm.elements.id.value;
+    const response = await fetch("/api/contracts/" + encodeURIComponent(id), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(contract)
+    });
+    if (response.status === 401) return window.location.assign("/");
+    if (response.status === 400) {
+      contractMessage.textContent = "Revise o título, as datas e o tamanho dos campos.";
+      contractMessage.dataset.state = "error";
+      return;
+    }
+    if (!response.ok) throw new Error("update_failed");
+    contractForm.hidden = true;
+    contractForm.reset();
+    await loadContracts();
+    await showContract(id);
+    contractMessage.textContent = "Rascunho do contrato salvo.";
+    contractMessage.dataset.state = "success";
+  } catch (_error) {
+    contractMessage.textContent = "Não foi possível salvar o contrato.";
+    contractMessage.dataset.state = "error";
+  } finally {
+    button.disabled = false;
+  }
+});
+
+cancelContractEdit.addEventListener("click", () => {
+  contractForm.reset();
+  contractForm.hidden = true;
+});
+
+loadContracts();
