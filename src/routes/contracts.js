@@ -35,6 +35,11 @@ function validateContract(body) {
   return { title, effectiveDate, endDate, paymentTerms, clauses };
 }
 
+function dateValue(value) {
+  if (!value) return "";
+  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+}
+
 function formatMoney(value) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 }
@@ -229,8 +234,8 @@ function createContractsRouter({ pool, appOrigin }) {
       }
       const current = rows[0];
       const changed = current.title !== contract.title ||
-        String(current.effective_date || "").slice(0, 10) !== (contract.effectiveDate || "") ||
-        String(current.end_date || "").slice(0, 10) !== (contract.endDate || "") ||
+        dateValue(current.effective_date) !== (contract.effectiveDate || "") ||
+        dateValue(current.end_date) !== (contract.endDate || "") ||
         (current.payment_terms || null) !== contract.paymentTerms || (current.clauses || null) !== contract.clauses;
       if (changed) {
         await connection.execute(
