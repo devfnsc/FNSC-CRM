@@ -46,6 +46,7 @@
       <h2 id="customer-form-title">Cadastrar cliente</h2>
       <p class="muted">Informe ao menos um meio de contato. Não registre senhas ou dados de pagamento nas observações.</p>
       <form id="customer-form">
+        <input id="customer-id" name="id" type="hidden">
         <label for="customer-name">Nome do contato <span aria-hidden="true">*</span></label>
         <input id="customer-name" name="name" maxlength="120" autocomplete="name" required>
         <label for="customer-company">Empresa</label>
@@ -56,7 +57,10 @@
         <input id="customer-phone" name="phone" type="tel" maxlength="32" autocomplete="tel">
         <label for="customer-notes">Observações</label>
         <textarea id="customer-notes" name="notes" maxlength="2000" rows="4"></textarea>
-        <button id="save-customer" type="submit">Cadastrar cliente</button>
+        <div class="form-actions">
+          <button id="save-customer" type="submit">Cadastrar cliente</button>
+          <button id="cancel-customer-edit" type="button" hidden>Cancelar edição</button>
+        </div>
         <p id="customer-message" role="status" aria-live="polite"></p>
       </form>
     </section>
@@ -82,6 +86,7 @@
       </nav>
       <section id="customer-details" class="customer-details" aria-live="polite" hidden>
         <h3>Detalhes do cliente</h3>
+        <button id="edit-customer" type="button">Editar cadastro</button>
         <dl id="customer-detail-fields"></dl>
       </section>
     </section>

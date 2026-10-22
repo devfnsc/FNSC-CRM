@@ -37,3 +37,7 @@ td button { white-space: nowrap; }
   th, td { padding: .55rem; }
   .pagination { gap: .5rem; }
 }
+.form-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .8rem; }
+.form-actions button { margin: 0; }
+#cancel-customer-edit { background: #65718a; }
+#edit-customer { margin: .5rem 0 1rem; }
