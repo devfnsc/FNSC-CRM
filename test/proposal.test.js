@@ -32,7 +32,14 @@ async function createServer({ authenticated = true } = {}) {
         return [{ affectedRows: 1 }, []];
       }
       if (query.includes("INSERT INTO proposal_status_history")) {
-        const [proposalId, previousStatus, newStatus, userId] = values;
+        let proposalId, previousStatus, newStatus, userId;
+        if (query.includes("VALUES (?, NULL, 'draft', ?)")) {
+          [proposalId, userId] = values;
+          previousStatus = null;
+          newStatus = "draft";
+        } else {
+          [proposalId, previousStatus, newStatus, userId] = values;
+        }
         stored.history.push({ proposal_id: proposalId, previous_status: previousStatus, new_status: newStatus,
           created_at: new Date().toISOString(), user_id: userId });
         return [{ insertId: stored.history.length }, []];
