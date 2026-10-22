@@ -58,3 +58,10 @@ td button { white-space: nowrap; }
 #proposal-list-message[data-state="error"] { color: #a22; }
 #proposal-total { margin: .25rem 0; font-weight: 800; }
 @media (max-width: 42rem) { .proposal-item-row { grid-template-columns: 1fr 1fr; } }
+
+.proposal-details { margin-top: 1.5rem; padding: 1rem; border-radius: .75rem; background: #f7f9fc; }
+.proposal-details h4 { margin: 0 0 .5rem; font-size: 1.1rem; }
+.proposal-details p { margin: .35rem 0; }
+.proposal-print-link { display: inline-block; margin: .45rem; color: #244b9b; font-weight: 700; }
+#proposal-details-message[data-state="error"] { color: #a22; }
+@media print { .app-header, .app-content { display: none; } }
