@@ -6,6 +6,7 @@
   <title>FNSC-CRM | Área administrativa</title>
   <link rel="stylesheet" href="/app.css">
   <script src="/company-profile.js" defer></script>
+  <script src="/customers.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body class="app-page">
@@ -38,6 +39,25 @@
         </select>
         <button id="save-company" type="submit">Salvar perfil</button>
         <p id="company-message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    <section class="panel" aria-labelledby="customers-title">
+      <p class="eyebrow">Relacionamento</p>
+      <h2 id="customers-title">Cadastrar cliente</h2>
+      <p class="muted">Informe ao menos um meio de contato. Não registre senhas ou dados de pagamento nas observações.</p>
+      <form id="customer-form">
+        <label for="customer-name">Nome do contato <span aria-hidden="true">*</span></label>
+        <input id="customer-name" name="name" maxlength="120" autocomplete="name" required>
+        <label for="customer-company">Empresa</label>
+        <input id="customer-company" name="companyName" maxlength="120" autocomplete="organization">
+        <label for="customer-email">E-mail</label>
+        <input id="customer-email" name="email" type="email" maxlength="254" autocomplete="email">
+        <label for="customer-phone">Telefone</label>
+        <input id="customer-phone" name="phone" type="tel" maxlength="32" autocomplete="tel">
+        <label for="customer-notes">Observações</label>
+        <textarea id="customer-notes" name="notes" maxlength="2000" rows="4"></textarea>
+        <button id="save-customer" type="submit">Cadastrar cliente</button>
+        <p id="customer-message" role="status" aria-live="polite"></p>
       </form>
     </section>
   </main>
