@@ -66,10 +66,15 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
       if (query.includes("FROM contracts WHERE id")) {
         return [state.contract && String(state.contract.id) === String(values[0]) ? [{ ...state.contract }] : [], []];
       }
-      if (query.includes("FROM contract_revisions")) return [state.revisions.map((v, i) => ({
-        revision_number: i + 1, title: v[2], effective_date: v[3], end_date: v[4], payment_terms: v[5],
-        clauses: v[6], total: v[7], created_at: "2026-10-22", created_by_email: "admin@example.com"
-      })), []];
+      if (query.includes("FROM contract_revisions")) return [state.revisions.map((v, i) => {
+        const initialRevision = v.length === 4;
+        return {
+          revision_number: i + 1, title: initialRevision ? v[1] : v[2],
+          effective_date: initialRevision ? null : v[3], end_date: initialRevision ? null : v[4],
+          payment_terms: initialRevision ? null : v[5], clauses: initialRevision ? null : v[6],
+          total: initialRevision ? v[2] : v[7], created_at: "2026-10-22", created_by_email: "admin@example.com"
+        };
+      }), []];
       if (query.includes("FROM contract_items WHERE contract_id")) {
         return [state.items.map((item) => ({
           service_name: item[1], description: item[2], quantity: item[3], unit_price: item[4], line_total: item[5]
