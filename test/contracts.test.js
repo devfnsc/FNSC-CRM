@@ -48,8 +48,8 @@ async function createServer({ authenticated = true, proposalStatus = "accepted" 
         state.items.push(values);
         return [{ insertId: state.items.length }, []];
       }
-      if (query.includes("SELECT id, status FROM contracts")) {
-        return [state.contract ? [{ id: state.contract.id, status: state.contract.status }] : [], []];
+      if (query.includes("FROM contracts WHERE id = ? FOR UPDATE")) {
+        return [state.contract ? [{ ...state.contract }] : [], []];
       }
       if (query.includes("UPDATE contracts SET")) {
         const [title, effectiveDate, endDate, paymentTerms, clauses] = values;
