@@ -12,7 +12,7 @@ CRM web para uma empresa independente de marketing e onboarding. O MVP reúne fr
 - Lançamentos de entradas e saídas com consulta mensal.
 - Checklist de onboarding vinculado a contratos e histórico de interações/follow-ups por cliente.
 
-As funcionalidades F01–F18 estão agrupadas na branch de integração. Os testes automatizados mais recentes passaram no GitHub Actions. Isso valida a suíte automatizada; não significa que o sistema já esteja publicado ou conectado a um banco de produção.
+As funcionalidades F01–F18 estão agrupadas na branch de integração. O CI valida 29 testes automatizados, migrações e fluxos de API contra MySQL 8, a demonstração Docker e uma jornada ponta a ponta no Chromium (login, clientes, interações, serviços, proposta, contrato, onboarding, financeiro e logout). O último resultado aprovado está no [GitHub Actions](https://github.com/devfnsc/FNSC-CRM/actions/runs/39963362332). Isso valida o MVP local; não significa que esteja publicado ou conectado a um banco de produção.
 
 ## Ver a demonstração local
 
