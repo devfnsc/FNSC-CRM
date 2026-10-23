@@ -12,6 +12,13 @@ function createApp({ pool, sessionStore, env = process.env }) {
   }
 
   const app = express();
+  if (env.TRUST_PROXY_HOPS !== undefined && env.TRUST_PROXY_HOPS !== "") {
+    const trustProxyHops = Number(env.TRUST_PROXY_HOPS);
+    if (!Number.isSafeInteger(trustProxyHops) || trustProxyHops < 0) {
+      throw new Error("TRUST_PROXY_HOPS must be a non-negative integer");
+    }
+    app.set("trust proxy", trustProxyHops);
+  }
   app.disable("x-powered-by");
   app.use(helmet());
   app.use(express.json({ limit: "64kb" }));
