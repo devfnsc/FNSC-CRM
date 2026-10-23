@@ -6,6 +6,8 @@ function createPool(env = process.env) {
     if (!env[name]) throw new Error("Missing required database setting: " + name);
   }
 
+  const ssl = env.DB_SSL_CA ? { ca: env.DB_SSL_CA } : undefined;
+
   return mysql.createPool({
     host: env.DB_HOST,
     port: Number(env.DB_PORT || 3306),
@@ -15,7 +17,8 @@ function createPool(env = process.env) {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    charset: "utf8mb4"
+    charset: "utf8mb4",
+    ...(ssl ? { ssl } : {})
   });
 }
 
