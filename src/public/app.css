@@ -1,5 +1,6 @@
 :root { font-family: system-ui, sans-serif; color: #172033; background: #f2f5fa; }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { min-height: 100vh; margin: 0; }
 button, input, select, textarea { font: inherit; }
 button { padding: .7rem 1rem; border: 0; border-radius: .5rem; background: #244b9b; color: white; font-weight: 700; cursor: pointer; }
