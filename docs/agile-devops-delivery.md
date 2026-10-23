@@ -100,4 +100,4 @@ O ambiente demonstrativo usa credenciais e dados descartáveis. Não registrar d
 
 ## Evidência automatizada
 
-A versão MySQL anterior tinha CI e jornada de demonstração aprovadas. A branch de migração precisa gerar uma nova execução PostgreSQL antes de afirmar que a persistência PostgreSQL está validada. Consulte o [GitHub Actions](https://github.com/devfnsc/FNSC-CRM/actions) e registre o resultado correspondente ao commit entregue.
+A versão MySQL anterior tinha CI e jornada de demonstração aprovadas. A branch `feature/supabase-postgresql`, commit `4aad379`, passou na execução [CI #291](https://github.com/devfnsc/FNSC-CRM/actions/runs/40010617650): testes automatizados, integração com PostgreSQL 16, build/smoke do Docker e jornada ponta a ponta no Chromium concluídos com sucesso. Essa evidência valida a aplicação em ambiente local automatizado; não representa deploy público. O estado de publicação e os passos ainda necessários estão em `docs/production-preparation.md`.
