@@ -22,7 +22,7 @@ async function main() {
 
     const migrationsDir = path.join(root, "src/db/migrations");
     const migrations = fs.readdirSync(migrationsDir)
-      .filter((file) => file.endsWith(".sql") && /^\\d{3}_/u.test(file))
+      .filter((file) => file.endsWith(".sql") && Number.isInteger(Number(file.slice(0, 3))) && file[3] === "_")
       .sort();
 
     for (const name of migrations) {
