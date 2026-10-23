@@ -59,14 +59,11 @@ async function main() {
     await customerOption.waitFor();
     await page.locator("#proposal-customer").selectOption(await customerOption.getAttribute("value"));
     await page.locator("#proposal-name").fill(proposalTitle);
-    await page.locator("#proposal-item-list .proposal-service").first().selectOption({
-      label: new RegExp(serviceName)
-    }).catch(async () => {
-      const options = await page.locator("#proposal-item-list .proposal-service").first().locator("option").allTextContents();
-      const option = options.find((text) => text.includes(serviceName));
-      assert.ok(option, "new service should be selectable in a proposal");
-      await page.locator("#proposal-item-list .proposal-service").first().selectOption({ label: option });
-    });
+    const serviceSelect = page.locator("#proposal-item-list .proposal-service").first();
+    const serviceOptionValue = await serviceSelect.locator("option")
+      .filter({ hasText: serviceName }).getAttribute("value");
+    assert.ok(serviceOptionValue, "new service should be selectable in a proposal");
+    await serviceSelect.selectOption(serviceOptionValue);
     await page.locator("#proposal-item-list .proposal-unit-price").first().fill("1250");
     await page.locator("#proposal-form button[type=submit]").click();
     const proposalRow = page.locator("#proposal-list tr").filter({ hasText: proposalTitle });
