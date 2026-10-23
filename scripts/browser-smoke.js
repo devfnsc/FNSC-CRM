@@ -18,12 +18,18 @@ async function main() {
   page.on("dialog", (dialog) => dialog.accept());
   const pageErrors = [];
   let contractResponseInfo = "no contract PUT response observed";
+  let onboardingResponseInfo = "no onboarding POST response observed";
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("response", async (response) => {
     if (response.url().includes("/api/contracts/") && response.request().method() === "PUT") {
       let body = "";
       try { body = await response.text(); } catch (_error) { /* response body may already be consumed */ }
       contractResponseInfo = response.status() + " " + body;
+    }
+    if (response.url().includes("/api/onboarding/") && response.request().method() === "POST") {
+      let body = "";
+      try { body = await response.text(); } catch (_error) { /* response body may already be consumed */ }
+      onboardingResponseInfo = response.status() + " " + body;
     }
   });
 
@@ -109,7 +115,11 @@ async function main() {
     await onboardingForm.locator("[name=title]").fill(taskTitle);
     await onboardingForm.locator("[name=details]").fill("Validar acesso e alinhar próximos passos.");
     await onboardingForm.getByRole("button", { name: "Adicionar tarefa" }).click();
-    await onboardingForm.locator(".onboarding-task").filter({ hasText: taskTitle }).waitFor();
+    await onboardingForm.locator(".onboarding-task").filter({ hasText: taskTitle }).waitFor({ timeout: 10000 }).catch(async () => {
+      const onboardingMessage = await page.locator(".onboarding-section [role=status]").innerText();
+      throw new Error("Onboarding task was not rendered: " + onboardingMessage +
+        " (response=" + onboardingResponseInfo + ")");
+    });
     const taskStatus = onboardingForm.getByLabel("Status da tarefa " + taskTitle);
     await taskStatus.selectOption("done");
     await onboardingForm.locator(".onboarding-column").filter({ hasText: "Concluída" })
