@@ -14,13 +14,13 @@ CRM web para uma empresa independente de marketing e onboarding. O MVP reúne fr
 
 As funcionalidades F01–F18 estão agrupadas na branch de integração. Os testes automatizados mais recentes passaram no GitHub Actions. Isso valida a suíte automatizada; não significa que o sistema já esteja publicado ou conectado a um banco de produção.
 
-## Rodar localmente
+## Ver a demonstração local
 
-Requisitos: Node.js 20+ e MySQL 8.
+Com Docker Desktop aberto, execute `docker compose up --build` e acesse [http://127.0.0.1:3000](http://127.0.0.1:3000). A configuração cria um banco MySQL isolado e uma conta descartável, sem dados reais. Veja credenciais, limites e detalhes em [docs/local-demo.md](docs/local-demo.md).
 
-Siga o passo a passo em [docs/development.md](docs/development.md) para configurar o banco, aplicar as migrações, criar o usuário administrador e iniciar o servidor em `http://localhost:3000`.
+Para desenvolvimento manual com Node.js e MySQL instalados, siga [docs/development.md](docs/development.md).
 
-Comandos principais:
+Comandos de desenvolvimento e testes:
 
 ```bash
 npm install
