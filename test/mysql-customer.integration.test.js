@@ -325,6 +325,7 @@ test("MySQL integration: admin can log in and complete the customer lifecycle", 
       })
     });
     assert.equal(financeExpense.status, 201);
+    const { transaction: expenseEntry } = await financeExpense.json();
 
     const financeSummary = await send("/api/finance?month=2026-10");
     const financeData = await financeSummary.json();
@@ -332,7 +333,7 @@ test("MySQL integration: admin can log in and complete the customer lifecycle", 
     assert.equal(financeData.summary.expenses, "40.00");
     assert.equal(financeData.summary.balance, "560.00");
 
-    const financeUpdate = await send("/api/finance/2", {
+    const financeUpdate = await send("/api/finance/" + expenseEntry.id, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Origin: process.env.APP_ORIGIN },
       body: JSON.stringify({
