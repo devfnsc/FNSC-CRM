@@ -110,3 +110,28 @@ test("valid login creates a session that can access the current-user endpoint", 
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
 });
+
+test("trusted proxy hops are configurable and validated", () => {
+  const app = createApp({
+    pool: { execute: async () => [[], []] },
+    sessionStore: new session.MemoryStore(),
+    env: {
+      APP_ORIGIN: "https://crm.example",
+      SESSION_SECRET: "test-only-session-secret-with-32-bytes",
+      NODE_ENV: "production",
+      TRUST_PROXY_HOPS: "1"
+    }
+  });
+  assert.equal(app.get("trust proxy"), 1);
+
+  assert.throws(() => createApp({
+    pool: { execute: async () => [[], []] },
+    sessionStore: new session.MemoryStore(),
+    env: {
+      APP_ORIGIN: "https://crm.example",
+      SESSION_SECRET: "test-only-session-secret-with-32-bytes",
+      NODE_ENV: "production",
+      TRUST_PROXY_HOPS: "one"
+    }
+  }), /TRUST_PROXY_HOPS must be a non-negative integer/);
+});
