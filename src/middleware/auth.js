@@ -5,7 +5,7 @@ function requireAuth(pool) {
     }
     try {
       const [rows] = await pool.execute(
-        "SELECT id, email FROM users WHERE id = ? AND active = 1 LIMIT 1",
+        "SELECT id, email FROM users WHERE id = ? AND active = TRUE LIMIT 1",
         [req.session.userId]
       );
       if (!rows[0]) {
