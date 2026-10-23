@@ -59,3 +59,20 @@ jobs:
         run: node scripts/prepare-customer-test-db.js
       - name: Run API tests against MySQL
         run: npm test
+
+  local-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build and start isolated local demo
+        run: docker compose up --build -d
+      - name: Verify login and customer workflow
+        run: node scripts/smoke-local-demo.js
+      - name: Stop demo and remove ephemeral test database
+        if: always()
+        run: docker compose down --volumes --remove-orphans
