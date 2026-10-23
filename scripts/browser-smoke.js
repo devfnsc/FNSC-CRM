@@ -56,7 +56,7 @@ async function main() {
     await page.locator("#service-list").getByText(serviceName).waitFor();
 
     const customerOption = page.locator("#proposal-customer option").filter({ hasText: customerName });
-    await customerOption.waitFor();
+    await customerOption.waitFor({ state: "attached" });
     await page.locator("#proposal-customer").selectOption(await customerOption.getAttribute("value"));
     await page.locator("#proposal-name").fill(proposalTitle);
     const serviceSelect = page.locator("#proposal-item-list .proposal-service").first();
