@@ -16,7 +16,7 @@ As funcionalidades F01–F18 estão agrupadas na branch de integração. O CI va
 
 ## Ver a demonstração local
 
-Com Docker Desktop aberto, execute `docker compose up --build` e acesse [http://127.0.0.1:3000](http://127.0.0.1:3000). A configuração cria um banco MySQL isolado e uma conta descartável, sem dados reais. Veja credenciais, limites e detalhes em [docs/local-demo.md](docs/local-demo.md).
+Com Docker Desktop aberto, execute `docker compose up --build` e acesse [http://127.0.0.1:3000](http://127.0.0.1:3000). A configuração cria um banco MySQL isolado e uma conta descartável, sem dados reais. Veja credenciais, limites e detalhes em [docs/local-demo.md](docs/local-demo.md). A imagem de produção e os pré-requisitos de hospedagem estão descritos em [docs/production-preparation.md](docs/production-preparation.md).
 
 Para desenvolvimento manual com Node.js e MySQL instalados, siga [docs/development.md](docs/development.md).
 
