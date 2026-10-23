@@ -164,6 +164,7 @@ customerForm.addEventListener("submit", async (event) => {
 
     const result = await response.json();
     const savedCustomerId = result.customer.id;
+    window.dispatchEvent(new CustomEvent("customer:changed", { detail: result.customer }));
     customerMessage.textContent = isEditing ? "Cadastro atualizado." : "Cliente cadastrado.";
     customerForm.reset();
     editingCustomerId = null;
@@ -204,6 +205,7 @@ async function changeCustomerArchive(action) {
     if (response.status === 404) throw new Error("not_found");
     if (!response.ok) throw new Error("archive_failed");
     const { customer } = await response.json();
+    window.dispatchEvent(new CustomEvent("customer:changed", { detail: customer }));
     customerMessage.textContent = isArchiving ? "Cliente arquivado." : "Cliente restaurado.";
     await loadCustomers();
     await loadCustomerDetails(customer.id);
