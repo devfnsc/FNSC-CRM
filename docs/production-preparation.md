@@ -19,7 +19,7 @@ Esta configuração não transfere dados de um MySQL existente. O CRM ainda não
 
 ## Verificação de entrega
 
-1. Confirme que a CI da PR da migração PostgreSQL passou.
+1. A CI #291 passou no commit `4aad379`: testes automatizados, PostgreSQL 16, demonstração Docker e jornada Chromium aprovados.
 2. Crie projeto Supabase no plano Free e aplique o esquema em banco vazio.
 3. Crie o Web Service Render a partir da branch revisada, sem publicar a branch até a CI passar.
 4. Cadastre URL de conexão e segredo de sessão nos campos secretos do host.
