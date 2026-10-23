@@ -12,7 +12,14 @@ const { createCustomerActivityRouter } = require("./customer-activities");
 function createApiRouter({ pool, appOrigin }) {
   const router = express.Router();
 
-  router.get("/health", (_req, res) => res.json({ status: "ok" }));
+  router.get("/health", async (_req, res) => {
+    try {
+      await pool.execute("SELECT 1");
+      res.json({ status: "ok" });
+    } catch (_error) {
+      res.status(503).json({ status: "unavailable" });
+    }
+  });
   router.use("/auth", createAuthRouter({ pool, appOrigin }));
   router.use("/company", createCompanyRouter({ pool, appOrigin }));
   router.use("/customers", createCustomersRouter({ pool, appOrigin }));
