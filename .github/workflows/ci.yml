@@ -76,7 +76,7 @@ jobs:
       - name: Install Playwright browser test dependencies
         run: |
           npm install --no-save --no-package-lock --no-audit --no-fund playwright
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Verify complete browser workflow
         run: node scripts/browser-smoke.js
       - name: Stop demo and remove ephemeral test database
