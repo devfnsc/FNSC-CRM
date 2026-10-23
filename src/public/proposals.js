@@ -211,6 +211,19 @@ function addProposalCell(row, value) {
   row.append(cell);
 }
 
+window.addEventListener("service:changed", (event) => {
+  const service = event.detail;
+  const existing = services.find((item) => String(item.id) === String(service.id));
+  if (existing) Object.assign(existing, service);
+  else services.push(service);
+  for (const select of itemList.querySelectorAll(".proposal-service")) {
+    const option = [...select.options].find((candidate) => candidate.value === String(service.id));
+    if (option) option.textContent = service.name;
+    else select.add(new Option(service.name, service.id));
+  }
+  if (services.length) addItemButton.disabled = false;
+});
+
 window.addEventListener("customer:changed", (event) => {
   const customer = event.detail;
   const existing = [...customerSelect.options].find((option) => option.value === String(customer.id));
