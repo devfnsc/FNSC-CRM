@@ -61,7 +61,7 @@ async function loadContracts() {
 }
 
 function fillContractForm(contract) {
-  contractForm.elements.id.value = contract.id;
+  document.querySelector("#contract-id").value = String(contract.id);
   contractForm.elements.title.value = contract.title;
   contractForm.elements.effectiveDate.value = contract.effectiveDate || "";
   contractForm.elements.endDate.value = contract.endDate || "";
@@ -231,7 +231,7 @@ contractForm.addEventListener("submit", async (event) => {
   try {
     const contract = Object.fromEntries(["title", "effectiveDate", "endDate", "paymentTerms", "clauses"]
       .map((name) => [name, contractForm.elements[name].value]));
-    const id = contractForm.elements.id.value;
+    const id = document.querySelector("#contract-id").value;
     const response = await fetch("/api/contracts/" + encodeURIComponent(id), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
