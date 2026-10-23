@@ -83,8 +83,8 @@ function createCompanyRouter({ pool, appOrigin }) {
       await pool.execute(
         "INSERT INTO company_profile (id, business_name, trade_name, contact_email, phone, website, timezone) " +
         "VALUES (1, ?, ?, ?, ?, ?, ?) " +
-        "ON DUPLICATE KEY UPDATE business_name = VALUES(business_name), trade_name = VALUES(trade_name), " +
-        "contact_email = VALUES(contact_email), phone = VALUES(phone), website = VALUES(website), timezone = VALUES(timezone)",
+        "ON CONFLICT (id) DO UPDATE SET business_name = EXCLUDED.business_name, trade_name = EXCLUDED.trade_name, " +
+        "contact_email = EXCLUDED.contact_email, phone = EXCLUDED.phone, website = EXCLUDED.website, timezone = EXCLUDED.timezone",
         [profile.businessName, profile.tradeName, profile.contactEmail, profile.phone, profile.website, profile.timezone]
       );
 

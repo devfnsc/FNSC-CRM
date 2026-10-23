@@ -1,14 +1,18 @@
 require("dotenv").config();
 
-const fs = require("node:fs");
-const path = require("node:path");
 const bcrypt = require("bcryptjs");
 const { createPool } = require("../src/config/database");
+const { applySchema } = require("./migrate");
 const { startServer } = require("../src/start");
+
+function databaseName(connectionString) {
+  try { return new URL(connectionString).pathname.replace(/^\//u, ""); }
+  catch { return ""; }
+}
 
 async function prepareDemoDatabase() {
   const env = process.env;
-  if (env.FNSC_DEMO_MODE !== "1" || env.DB_NAME !== "fnsc_crm_demo") {
+  if (env.FNSC_DEMO_MODE !== "1" || databaseName(env.DATABASE_URL) !== "fnsc_crm_demo") {
     throw new Error("Refusing demo bootstrap outside the isolated fnsc_crm_demo database.");
   }
 
@@ -25,31 +29,9 @@ async function prepareDemoDatabase() {
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
-    if (!ready) throw new Error("MySQL did not become ready.");
+    if (!ready) throw new Error("PostgreSQL did not become ready.");
 
-    const root = path.join(__dirname, "..");
-    await pool.query(fs.readFileSync(path.join(root, "src/db/schema.sql"), "utf8"));
-    await pool.query(
-      "CREATE TABLE IF NOT EXISTS schema_migrations (" +
-      "name VARCHAR(255) NOT NULL PRIMARY KEY, applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP" +
-      ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-    );
-
-    const migrationsDir = path.join(root, "src/db/migrations");
-    const files = fs.readdirSync(migrationsDir)
-      .filter((file) => file.endsWith(".sql") && /^\d{3}_/u.test(file))
-      .sort();
-
-    for (const name of files) {
-      const [applied] = await pool.execute("SELECT name FROM schema_migrations WHERE name = ?", [name]);
-      if (applied.length) continue;
-      const sql = fs.readFileSync(path.join(migrationsDir, name), "utf8");
-      const statements = sql.split(";").map((statement) => statement.trim()).filter(Boolean);
-      for (const statement of statements) await pool.query(statement);
-      await pool.execute("INSERT INTO schema_migrations (name) VALUES (?)", [name]);
-      console.log("Applied migration:", name);
-    }
-
+    await applySchema(pool);
     const email = (env.CRM_DEMO_EMAIL || "").trim().toLowerCase();
     const password = env.CRM_DEMO_PASSWORD || "";
     if (!email || Buffer.byteLength(password, "utf8") < 12) {

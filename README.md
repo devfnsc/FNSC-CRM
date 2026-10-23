@@ -1,41 +1,35 @@
 # FNSC-CRM
 
-CRM web para uma empresa independente de marketing e onboarding. O MVP reúne frontend em HTML/CSS/JavaScript puro, API em Node.js/Express e banco MySQL.
+CRM web para uma empresa independente de marketing e onboarding. O MVP reúne frontend em HTML/CSS/JavaScript puro, API em Node.js/Express e PostgreSQL compatível com Supabase.
 
-## O que já está implementado
+## MVP implementado
 
 - Acesso administrativo e perfil da empresa.
 - Cadastro, consulta, edição e arquivamento reversível de clientes.
-- Catálogo de serviços com edição.
-- Propostas em rascunho, edição, histórico de status e versão imprimível para salvar em PDF pelo navegador.
-- Contratos gerados a partir de propostas aceitas, com revisões, impressão e registro manual de status.
-- Lançamentos de entradas e saídas com consulta mensal.
-- Checklist de onboarding vinculado a contratos e histórico de interações/follow-ups por cliente.
+- Catálogo de serviços.
+- Propostas, impressão/salvamento como PDF pelo navegador e histórico de status.
+- Contratos com revisões, impressão e registro manual de status.
+- Lançamentos financeiros manuais e resumo mensal.
+- Checklist de onboarding e histórico de interações/follow-ups.
 
-As funcionalidades F01–F18 estão agrupadas na branch de integração. O CI mais recente valida 35/35 testes contra MySQL 8, migrações e fluxos de API, a demonstração Docker e uma jornada ponta a ponta no Chromium (login, clientes, interações, serviços, proposta, contrato, onboarding, financeiro e logout). O resultado aprovado está no [GitHub Actions](https://github.com/devfnsc/FNSC-CRM/actions/runs/40003918241). A imagem da demonstração também executa o processo com usuário sem privilégios administrativos. O endpoint `/api/health` verifica também a conexão com o banco, sem expor detalhes de erro. Isso valida o MVP local; não significa que esteja publicado ou conectado a um banco de produção.
+As features F01–F18 estão integradas na branch de MVP. A migração PostgreSQL/Supabase está em validação nesta branch. O CRM não está publicado ainda; veja [docs/supabase-free-deploy.md](docs/supabase-free-deploy.md) para preparar banco e hospedagem sem enviar segredos ao repositório.
 
-## Entrega ágil e DevOps
+## Executar a demonstração local
 
-O processo Scrum/Kanban, backlog priorizado, três histórias de usuário e evidências DevOps estão em [docs/agile-devops-delivery.md](docs/agile-devops-delivery.md).
-
-## Ver a demonstração local
-
-Com Docker Desktop aberto, execute `docker compose up --build` e acesse [http://127.0.0.1:3000](http://127.0.0.1:3000). A configuração cria um banco MySQL isolado e uma conta descartável, sem dados reais. Veja credenciais, limites e detalhes em [docs/local-demo.md](docs/local-demo.md). A imagem de produção e os pré-requisitos de hospedagem estão descritos em [docs/production-preparation.md](docs/production-preparation.md).
-
-Para desenvolvimento manual com Node.js e MySQL instalados, siga [docs/development.md](docs/development.md).
-
-Comandos de desenvolvimento e testes:
+Com Docker Desktop:
 
 ```bash
-npm install
-npm run dev
-npm test
+docker compose up --build
 ```
 
-## CI, publicação e segurança
+Acesse http://127.0.0.1:3000. A demonstração usa PostgreSQL descartável, fica vinculada ao computador local e contém apenas uma conta fictícia. Não use os dados da demonstração como dados reais.
 
-O GitHub Actions instala as dependências e executa os testes em pushes para `main` e branches `feature/**`. Ainda não há deploy automático nem endereço público do CRM: a configuração de hospedagem, banco remoto, segredos, HTTPS e backups precisa ser feita antes de usar dados reais.
+Para configurar PostgreSQL localmente e criar conta administrativa, consulte [docs/development.md](docs/development.md). O banco Supabase deve receber o esquema versionado antes do deploy.
 
-Não existe cadastro público. O status “assinado” de um contrato é um registro manual, não uma assinatura digital. A impressão de propostas/contratos usa a função de impressão do navegador. Este MVP não substitui um sistema contábil ou orientação jurídica.
+## Qualidade e DevOps
 
-Nunca publique arquivos `.env`, credenciais ou dados pessoais/financeiros de clientes.
+GitHub Actions executa testes unitários, integração contra PostgreSQL, build da demonstração Docker e fluxo de navegador no Chromium. A imagem roda como usuário sem privilégios; sessões ficam em tabela PostgreSQL; o endpoint `GET /api/health` verifica aplicação e banco.
+
+O planejamento Scrum/Kanban, backlog e histórias de usuário estão em [docs/agile-devops-delivery.md](docs/agile-devops-delivery.md).
+
+Este MVP não possui cadastro público, assinatura eletrônica, integração bancária ou função contábil. O status de contrato assinado é registrado manualmente. Não publique credenciais ou dados pessoais/financeiros de clientes.

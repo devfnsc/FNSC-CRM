@@ -1,26 +1,26 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const session = require("express-session");
-const MySQLStore = require("express-mysql-session")(session);
+const PgSessionStore = require("connect-pg-simple")(session);
 const bcrypt = require("bcryptjs");
 const { createPool } = require("../src/config/database");
 const { createApp } = require("../src/server");
 
-test("MySQL integration: admin can log in and complete the customer lifecycle", {
-  skip: process.env.RUN_MYSQL_INTEGRATION !== "1"
+test("PostgreSQL integration: admin can log in and complete the CRM lifecycle", {
+  skip: process.env.RUN_POSTGRES_INTEGRATION !== "1"
 }, async () => {
   const pool = createPool();
-  const sessionStore = new MySQLStore({
-    clearExpired: true,
-    checkExpirationInterval: 15 * 60 * 1000,
-    expiration: 8 * 60 * 60 * 1000,
-    createDatabaseTable: true
-  }, pool);
+  const sessionStore = new PgSessionStore({
+    pool: pool.nativePool,
+    tableName: "user_sessions",
+    createTableIfMissing: false,
+    pruneSessionInterval: false,
+    ttl: 8 * 60 * 60
+  });
   let server;
 
   try {
-    await sessionStore.onReady();
-    await pool.execute("DELETE FROM sessions");
+    await pool.execute("DELETE FROM user_sessions");
     await pool.execute("DELETE FROM customer_activities");
     await pool.execute("DELETE FROM onboarding_tasks");
     await pool.execute("DELETE FROM contract_status_history");
@@ -40,7 +40,7 @@ test("MySQL integration: admin can log in and complete the customer lifecycle", 
     const password = "integration-test-password-123";
     const passwordHash = await bcrypt.hash(password, 4);
     await pool.execute(
-      "INSERT INTO users (email, password_hash, active) VALUES (?, ?, 1)",
+      "INSERT INTO users (email, password_hash, active) VALUES (?, ?, TRUE)",
       [email, passwordHash]
     );
 

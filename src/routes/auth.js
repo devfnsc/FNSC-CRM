@@ -24,7 +24,7 @@ function createAuthRouter({ pool, appOrigin }) {
       }
 
       const [rows] = await pool.execute(
-        "SELECT id, email, password_hash FROM users WHERE email = ? AND active = 1 LIMIT 1",
+        "SELECT id, email, password_hash FROM users WHERE email = ? AND active = TRUE LIMIT 1",
         [email]
       );
       const user = rows[0];
