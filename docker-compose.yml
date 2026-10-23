@@ -16,6 +16,7 @@ services:
 
   app:
     build: .
+    command: ["node", "scripts/container-start.js"]
     depends_on:
       database:
         condition: service_healthy
