@@ -14,6 +14,10 @@ CRM web para uma empresa independente de marketing e onboarding. O MVP reúne fr
 
 As funcionalidades F01–F18 estão agrupadas na branch de integração. O CI valida 29 testes automatizados, migrações e fluxos de API contra MySQL 8, a demonstração Docker e uma jornada ponta a ponta no Chromium (login, clientes, interações, serviços, proposta, contrato, onboarding, financeiro e logout). O último resultado aprovado está no [GitHub Actions](https://github.com/devfnsc/FNSC-CRM/actions/runs/39964643304). A imagem da demonstração também executa o processo com usuário sem privilégios administrativos. Isso valida o MVP local; não significa que esteja publicado ou conectado a um banco de produção.
 
+## Entrega ágil e DevOps
+
+O processo Scrum/Kanban, backlog priorizado, três histórias de usuário e evidências DevOps estão em [docs/agile-devops-delivery.md](docs/agile-devops-delivery.md).
+
 ## Ver a demonstração local
 
 Com Docker Desktop aberto, execute `docker compose up --build` e acesse [http://127.0.0.1:3000](http://127.0.0.1:3000). A configuração cria um banco MySQL isolado e uma conta descartável, sem dados reais. Veja credenciais, limites e detalhes em [docs/local-demo.md](docs/local-demo.md). A imagem de produção e os pré-requisitos de hospedagem estão descritos em [docs/production-preparation.md](docs/production-preparation.md).
