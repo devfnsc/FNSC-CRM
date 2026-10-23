@@ -211,6 +211,21 @@ function addProposalCell(row, value) {
   row.append(cell);
 }
 
+window.addEventListener("customer:changed", (event) => {
+  const customer = event.detail;
+  const existing = [...customerSelect.options].find((option) => option.value === String(customer.id));
+  if (customer.archivedAt) {
+    existing?.remove();
+    return;
+  }
+  const label = customer.name + (customer.companyName ? " — " + customer.companyName : "");
+  if (existing) {
+    existing.textContent = label;
+    return;
+  }
+  customerSelect.add(new Option(label, customer.id));
+});
+
 async function loadProposalOptions() {
   const [customersResponse, servicesResponse] = await Promise.all([
     fetch("/api/customers?limit=100&status=active", { credentials: "same-origin" }),
