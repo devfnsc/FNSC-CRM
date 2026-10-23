@@ -110,6 +110,8 @@ serviceForm.addEventListener("submit", async (event) => {
     }
     if (!response.ok) throw new Error("save_failed");
 
+    const { service: savedService } = await response.json();
+    window.dispatchEvent(new CustomEvent("service:changed", { detail: savedService }));
     serviceForm.reset();
     editingServiceId = null;
     serviceIdField.value = "";
