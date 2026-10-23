@@ -15,7 +15,7 @@ Na pasta do repositório, execute:
 docker compose up --build
 ```
 
-Quando aparecer `FNSC-CRM listening on port 3000`, abra [http://localhost:3000](http://localhost:3000) e entre com:
+Quando aparecer `FNSC-CRM listening on port 3000`, abra [http://127.0.0.1:3000](http://127.0.0.1:3000) e entre com:
 
 - E-mail: `demo@fnsc.local`
 - Senha: `local-demo-password-123`
