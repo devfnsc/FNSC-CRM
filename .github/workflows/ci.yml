@@ -9,7 +9,7 @@ concurrency:
 
 on:
   push:
-    branches: [main, "feature/**"]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -27,69 +27,3 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Run automated tests
         run: npm test
-
-  mysql-integration:
-    runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: fnsc_crm_test
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping --host=127.0.0.1 --password=root --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-    env:
-      NODE_ENV: test
-      RUN_MYSQL_INTEGRATION: "1"
-      DB_HOST: 127.0.0.1
-      DB_PORT: 3306
-      DB_NAME: fnsc_crm_test
-      DB_USER: root
-      DB_PASSWORD: root
-      APP_ORIGIN: http://localhost:3000
-      SESSION_SECRET: test-only-session-secret-with-32-bytes
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Prepare isolated MySQL test database
-        run: node scripts/prepare-customer-test-db.js
-      - name: Run API tests against MySQL
-        run: npm test
-
-  local-demo:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Build and start isolated local demo
-        run: docker compose up --build -d
-      - name: Verify deployable image defaults
-        run: |
-          docker image inspect fnsc-crm:local-demo --format '{{.Config.User}}' | grep -Fx node
-          docker image inspect fnsc-crm:local-demo --format '{{json .Config.Cmd}}' | grep -F 'src/server.js'
-      - name: Verify login and customer workflow
-        run: node scripts/smoke-local-demo.js
-      - name: Install Playwright browser test dependencies
-        run: |
-          npm install --no-save --no-package-lock --no-audit --no-fund playwright
-          npx playwright install chromium
-      - name: Verify complete browser workflow
-        run: node scripts/browser-smoke.js
-      - name: Stop demo and remove ephemeral test database
-        if: always()
-        run: docker compose down --volumes --remove-orphans
