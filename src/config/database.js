@@ -1,6 +1,6 @@
 const mysql = require("mysql2/promise");
 
-function createPool(env = process.env) {
+function buildPoolOptions(env = process.env) {
   const required = ["DB_HOST", "DB_NAME", "DB_USER"];
   for (const name of required) {
     if (!env[name]) throw new Error("Missing required database setting: " + name);
@@ -8,7 +8,7 @@ function createPool(env = process.env) {
 
   const ssl = env.DB_SSL_CA ? { ca: env.DB_SSL_CA } : undefined;
 
-  return mysql.createPool({
+  return {
     host: env.DB_HOST,
     port: Number(env.DB_PORT || 3306),
     database: env.DB_NAME,
@@ -19,7 +19,11 @@ function createPool(env = process.env) {
     queueLimit: 0,
     charset: "utf8mb4",
     ...(ssl ? { ssl } : {})
-  });
+  };
 }
 
-module.exports = { createPool };
+function createPool(env = process.env) {
+  return mysql.createPool(buildPoolOptions(env));
+}
+
+module.exports = { createPool, buildPoolOptions };
