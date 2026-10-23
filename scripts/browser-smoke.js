@@ -17,7 +17,15 @@ async function main() {
   const page = await browser.newPage();
   page.on("dialog", (dialog) => dialog.accept());
   const pageErrors = [];
+  let contractResponseInfo = "no contract PUT response observed";
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("response", async (response) => {
+    if (response.url().includes("/api/contracts/") && response.request().method() === "PUT") {
+      let body = "";
+      try { body = await response.text(); } catch (_error) { /* response body may already be consumed */ }
+      contractResponseInfo = response.status() + " " + body;
+    }
+  });
 
   try {
     await page.goto(origin, { waitUntil: "networkidle" });
@@ -82,7 +90,9 @@ async function main() {
     await page.locator("#contract-clauses").fill("Escopo validado pelo responsável.");
     await contractForm.locator("button[type=submit]").click();
     await contractForm.waitFor({ state: "hidden", timeout: 10000 }).catch(async () => {
-      throw new Error("Contract draft was not saved: " + await page.locator("#contract-message").innerText());
+      const contractId = await page.locator("#contract-id").evaluate((input) => input.value);
+      throw new Error("Contract draft was not saved: " + await page.locator("#contract-message").innerText() +
+        " (id=" + contractId + "; response=" + contractResponseInfo + ")");
     });
     const contractRow = page.locator("#contract-list tr").filter({ hasText: contractTitle });
     await contractRow.waitFor();
