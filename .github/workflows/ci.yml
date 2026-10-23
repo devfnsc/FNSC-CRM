@@ -78,6 +78,10 @@ jobs:
           node-version: 20
       - name: Build and start isolated local demo
         run: docker compose up --build -d
+      - name: Verify deployable image defaults
+        run: |
+          docker image inspect fnsc-crm:local-demo --format '{{.Config.User}}' | grep -Fx node
+          docker image inspect fnsc-crm:local-demo --format '{{json .Config.Cmd}}' | grep -F 'src/server.js'
       - name: Verify login and customer workflow
         run: node scripts/smoke-local-demo.js
       - name: Install Playwright browser test dependencies
