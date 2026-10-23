@@ -82,13 +82,23 @@ jobs:
           docker image inspect fnsc-crm:local-demo --format '{{.Config.User}}' | grep -Fx node
           docker image inspect fnsc-crm:local-demo --format '{{json .Config.Cmd}}' | grep -F 'src/server.js'
       - name: Verify login and customer workflow
-        run: node scripts/smoke-local-demo.js
+        run: |
+          if ! node scripts/smoke-local-demo.js; then
+            docker compose ps
+            docker compose logs app database
+            exit 1
+          fi
       - name: Install Playwright browser test dependencies
         run: |
           npm install --no-save --no-package-lock --no-audit --no-fund playwright
           npx playwright install chromium
       - name: Verify complete browser workflow
-        run: node scripts/browser-smoke.js
+        run: |
+          if ! node scripts/browser-smoke.js; then
+            docker compose ps
+            docker compose logs app database
+            exit 1
+          fi
       - name: Stop demo and remove ephemeral test database
         if: always()
         run: docker compose down --volumes --remove-orphans
