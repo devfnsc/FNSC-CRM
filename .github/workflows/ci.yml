@@ -73,6 +73,12 @@ jobs:
         run: docker compose up --build -d
       - name: Verify login and customer workflow
         run: node scripts/smoke-local-demo.js
+      - name: Install Playwright browser test dependencies
+        run: |
+          npm install --no-save --no-package-lock --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium
+      - name: Verify complete browser workflow
+        run: node scripts/browser-smoke.js
       - name: Stop demo and remove ephemeral test database
         if: always()
         run: docker compose down --volumes --remove-orphans
