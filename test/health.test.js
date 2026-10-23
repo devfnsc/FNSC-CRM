@@ -135,3 +135,18 @@ test("trusted proxy hops are configurable and validated", () => {
     }
   }), /TRUST_PROXY_HOPS must be a non-negative integer/);
 });
+
+
+test("hosting-provided public origin is accepted when APP_ORIGIN is not set", () => {
+  const app = createApp({
+    pool: { execute: async () => [[], []] },
+    sessionStore: new session.MemoryStore(),
+    env: {
+      RENDER_EXTERNAL_URL: "https://fnsc-crm-demo.onrender.com",
+      SESSION_SECRET: "test-only-session-secret-with-32-bytes",
+      NODE_ENV: "production",
+      TRUST_PROXY_HOPS: "1"
+    }
+  });
+  assert.equal(typeof app.listen, "function");
+});
