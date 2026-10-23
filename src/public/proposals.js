@@ -221,7 +221,10 @@ window.addEventListener("service:changed", (event) => {
     if (option) option.textContent = service.name;
     else select.add(new Option(service.name, service.id));
   }
-  if (services.length) addItemButton.disabled = false;
+  if (services.length) {
+    addItemButton.disabled = false;
+    if (!itemList.childElementCount) addProposalItem();
+  }
 });
 
 window.addEventListener("customer:changed", (event) => {
