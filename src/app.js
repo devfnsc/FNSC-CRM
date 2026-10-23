@@ -6,7 +6,8 @@ const { createApiRouter } = require("./routes");
 const { requireAuth } = require("./middleware/auth");
 
 function createApp({ pool, sessionStore, env = process.env }) {
-  if (!env.APP_ORIGIN) throw new Error("APP_ORIGIN is required");
+  const appOrigin = env.APP_ORIGIN || env.RENDER_EXTERNAL_URL;
+  if (!appOrigin) throw new Error("APP_ORIGIN or RENDER_EXTERNAL_URL is required");
   if (!env.SESSION_SECRET || Buffer.byteLength(env.SESSION_SECRET) < 32) {
     throw new Error("SESSION_SECRET must contain at least 32 bytes");
   }
@@ -37,7 +38,7 @@ function createApp({ pool, sessionStore, env = process.env }) {
     }
   }));
 
-  app.use("/api", createApiRouter({ pool, appOrigin: env.APP_ORIGIN }));
+  app.use("/api", createApiRouter({ pool, appOrigin }));
   app.use(express.static(path.join(__dirname, "public"), { index: "index.html" }));
   app.get("/app", requireAuth(pool), (_req, res) => {
     res.sendFile(path.join(__dirname, "private", "app.html"));
