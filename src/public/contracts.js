@@ -132,12 +132,12 @@ async function showContract(id, edit = false) {
     }
     contractDetailsContent.append(history);
 
-    const edit = document.createElement("button");
-    edit.type = "button";
-    edit.textContent = "Editar rascunho";
-    edit.disabled = contract.status !== "draft";
-    edit.addEventListener("click", () => fillContractForm(contract));
-    contractDetailsContent.append(edit);
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.textContent = "Editar rascunho";
+    editButton.disabled = contract.status !== "draft";
+    editButton.addEventListener("click", () => fillContractForm(contract));
+    contractDetailsContent.append(editButton);
 
     if (contract.status === "draft") {
       for (const [status, label] of [["signed", "Registrar como assinado"], ["cancelled", "Cancelar rascunho"]]) {
