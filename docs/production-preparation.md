@@ -4,7 +4,7 @@ O Dockerfile inicia o servidor da aplicação em modo de produção e executa o 
 
 ## Configuração exigida no host
 
-O arquivo [`render.yaml`](../render.yaml) prepara uma demonstração temporária no Render: Docker, região Virginia, plano gratuito, endpoint de saúde e deploy automático somente após as verificações de CI. Ao conectar o repositório ao Render, informe no painel as variáveis `DB_*` e o certificado CA de `DB_SSL_CA`; o segredo de sessão é gerado pelo Blueprint. O servidor usa `RENDER_EXTERNAL_URL` como origem pública quando `APP_ORIGIN` não é definido.
+O arquivo [`render.yaml`](../render.yaml) prepara uma demonstração temporária no Render: Docker, região Virginia, plano gratuito, endpoint de saúde e deploy automático somente após as verificações de CI. O endpoint `/api/health` verifica a conectividade com MySQL e responde `503` sem expor detalhes se o banco estiver indisponível. Ao conectar o repositório ao Render, informe no painel as variáveis `DB_*` e o certificado CA de `DB_SSL_CA`; o segredo de sessão é gerado pelo Blueprint. O servidor usa `RENDER_EXTERNAL_URL` como origem pública quando `APP_ORIGIN` não é definido.
 
 Para uma base MySQL compatível, o plano gratuito do Aiven pode ser conectado por TLS fornecendo o certificado CA em `DB_SSL_CA`. O `mysql2` valida certificados quando recebe essa CA. A configuração usa MySQL remoto, fora do Render, e o tráfego conta como saída da aplicação.
 
