@@ -9,6 +9,7 @@ RUN npm install --omit=dev --no-audit --no-fund
 COPY src ./src
 COPY scripts/container-start.js ./scripts/container-start.js
 COPY scripts/create-admin.js ./scripts/create-admin.js
+COPY scripts/migrate.js ./scripts/migrate.js
 
 # Run the application with the unprivileged user provided by the official Node image.
 USER node
