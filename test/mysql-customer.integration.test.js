@@ -285,7 +285,7 @@ test("MySQL integration: admin can log in and complete the customer lifecycle", 
     const onboardingList = await send("/api/onboarding/contracts/" + contract.id + "/tasks");
     assert.equal((await onboardingList.json()).tasks[0].status, "in_progress");
 
-    const activityCreate = await send("/api/customers/" + customer.id + "/activities", {
+    const activityCreate = await send("/api/customer-activities/customers/" + customer.id + "/activities", {
       method: "POST",
       headers: { "Content-Type": "application/json", Origin: process.env.APP_ORIGIN },
       body: JSON.stringify({
@@ -297,13 +297,13 @@ test("MySQL integration: admin can log in and complete the customer lifecycle", 
     });
     assert.equal(activityCreate.status, 201);
     const { activity } = await activityCreate.json();
-    const followUp = await send("/api/activities/" + activity.id + "/follow-up", {
+    const followUp = await send("/api/customer-activities/activities/" + activity.id + "/follow-up", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Origin: process.env.APP_ORIGIN },
       body: JSON.stringify({ status: "completed" })
     });
     assert.equal(followUp.status, 200);
-    const activityList = await send("/api/customers/" + customer.id + "/activities");
+    const activityList = await send("/api/customer-activities/customers/" + customer.id + "/activities");
     assert.equal((await activityList.json()).activities[0].followUpStatus, "completed");
 
     const financeIncome = await send("/api/finance", {
