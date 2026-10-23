@@ -1,0 +1,41 @@
+services:
+  database:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: fnsc_crm_demo
+      MYSQL_USER: fnsc_demo
+      MYSQL_PASSWORD: local-demo-db-password
+      MYSQL_ROOT_PASSWORD: local-demo-root-password
+    volumes:
+      - fnsc_crm_demo_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=root --password=$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    image: fnsc-crm:local-demo
+    build: .
+    command: ["node", "scripts/container-start.js"]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      APP_ORIGIN: http://127.0.0.1:3000
+      SESSION_SECRET: local-demo-only-session-secret-do-not-use-with-real-data
+      DB_HOST: database
+      DB_PORT: 3306
+      DB_NAME: fnsc_crm_demo
+      DB_USER: fnsc_demo
+      DB_PASSWORD: local-demo-db-password
+      FNSC_DEMO_MODE: "1"
+      CRM_DEMO_EMAIL: demo@fnsc.local
+      CRM_DEMO_PASSWORD: local-demo-password-123
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  fnsc_crm_demo_data:

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FNSC-CRM | Área administrativa</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/company-profile.js" defer></script>
+  <script src="/customers.js" defer></script>
+  <script src="/customer-activities.js" defer></script>
+  <script src="/services.js" defer></script>
+  <script src="/contracts.js" defer></script>
+  <script src="/onboarding.js" defer></script>
+  <script src="/finance.js" defer></script>
+  <script src="/proposals.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body class="app-page">
+  <header class="app-header">
+    <a class="brand" href="/app">FNSC-CRM</a>
+    <button id="logout" type="button">Sair</button>
+    <p id="logout-message" role="status" aria-live="polite"></p>
+  </header>
+  <main class="app-content">
+    <section class="panel" aria-labelledby="company-title">
+      <p class="eyebrow">Configurações</p>
+      <h1 id="company-title">Perfil da empresa</h1>
+      <p class="muted">Esses dados poderão aparecer nas propostas e nos contratos.</p>
+      <form id="company-form">
+        <label for="businessName">Nome da empresa <span aria-hidden="true">*</span></label>
+        <input id="businessName" name="businessName" maxlength="120" autocomplete="organization" required>
+        <label for="tradeName">Nome fantasia</label>
+        <input id="tradeName" name="tradeName" maxlength="120">
+        <label for="contactEmail">E-mail de contato</label>
+        <input id="contactEmail" name="contactEmail" type="email" maxlength="254" autocomplete="email">
+        <label for="phone">Telefone</label>
+        <input id="phone" name="phone" type="tel" maxlength="32" autocomplete="tel">
+        <label for="website">Site</label>
+        <input id="website" name="website" type="url" maxlength="255" placeholder="https://">
+        <label for="timezone">Fuso horário</label>
+        <select id="timezone" name="timezone">
+          <option value="America/Sao_Paulo">Brasília (America/Sao_Paulo)</option>
+          <option value="America/Manaus">Manaus</option>
+          <option value="America/Rio_Branco">Rio Branco</option>
+          <option value="UTC">UTC</option>
+        </select>
+        <button id="save-company" type="submit">Salvar perfil</button>
+        <p id="company-message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    <section class="panel" aria-labelledby="customer-form-title">
+      <p class="eyebrow">Relacionamento</p>
+      <h2 id="customer-form-title">Cadastrar cliente</h2>
+      <p class="muted">Informe ao menos um meio de contato. Não registre senhas ou dados de pagamento nas observações.</p>
+      <form id="customer-form">
+        <input id="customer-id" name="id" type="hidden">
+        <label for="customer-name">Nome do contato <span aria-hidden="true">*</span></label>
+        <input id="customer-name" name="name" maxlength="120" autocomplete="name" required>
+        <label for="customer-company">Empresa</label>
+        <input id="customer-company" name="companyName" maxlength="120" autocomplete="organization">
+        <label for="customer-email">E-mail</label>
+        <input id="customer-email" name="email" type="email" maxlength="254" autocomplete="email">
+        <label for="customer-phone">Telefone</label>
+        <input id="customer-phone" name="phone" type="tel" maxlength="32" autocomplete="tel">
+        <label for="customer-notes">Observações</label>
+        <textarea id="customer-notes" name="notes" maxlength="2000" rows="4"></textarea>
+        <div class="form-actions">
+          <button id="save-customer" type="submit">Cadastrar cliente</button>
+          <button id="cancel-customer-edit" type="button" hidden>Cancelar edição</button>
+        </div>
+        <p id="customer-message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    <section class="panel" aria-labelledby="service-title">
+      <p class="eyebrow">Portfólio</p>
+      <h2 id="service-title">Serviços oferecidos</h2>
+      <p class="muted">Cadastre os serviços para reutilizá-los em futuras propostas. Valor de referência é opcional.</p>
+      <form id="service-form">
+        <input id="service-id" name="id" type="hidden">
+        <label for="service-name">Nome do serviço <span aria-hidden="true">*</span></label>
+        <input id="service-name" name="name" maxlength="120" required>
+        <label for="service-description">Descrição</label>
+        <textarea id="service-description" name="description" maxlength="2000" rows="3"></textarea>
+        <label for="service-price">Valor de referência (R$)</label>
+        <input id="service-price" name="referencePrice" type="number" min="0" max="99999999.99" step="0.01" placeholder="Deixe em branco para sob consulta">
+        <div class="form-actions">
+          <button id="save-service" type="submit">Cadastrar serviço</button>
+          <button id="cancel-service-edit" type="button" hidden>Cancelar edição</button>
+        </div>
+        <p id="service-message" role="status" aria-live="polite"></p>
+      </form>
+      <h3>Catálogo cadastrado</h3>
+      <p id="service-list-message" role="status" aria-live="polite"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Serviço</th><th>Descrição</th><th>Valor de referência</th><th>Ação</th></tr></thead>
+          <tbody id="service-list"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="proposal-title">
+      <p class="eyebrow">Comercial</p>
+      <h2 id="proposal-title">Nova proposta</h2>
+      <p class="muted">Crie um rascunho com serviços e valores negociados. A proposta ainda não é enviada ao cliente.</p>
+      <form id="proposal-form">
+        <input id="proposal-id" name="proposalId" type="hidden">
+        <label for="proposal-customer">Cliente <span aria-hidden="true">*</span></label>
+        <select id="proposal-customer" name="customerId" required>
+          <option value="">Carregando clientes...</option>
+        </select>
+        <label for="proposal-name">Título da proposta <span aria-hidden="true">*</span></label>
+        <input id="proposal-name" name="title" maxlength="160" required>
+        <label for="proposal-valid-until">Válida até</label>
+        <input id="proposal-valid-until" name="validUntil" type="date">
+        <label for="proposal-notes">Observações comerciais</label>
+        <textarea id="proposal-notes" name="notes" maxlength="2000" rows="3"></textarea>
+        <fieldset class="proposal-items">
+          <legend>Serviços e valores</legend>
+          <div id="proposal-item-list"></div>
+          <button id="add-proposal-item" type="button">Adicionar serviço</button>
+        </fieldset>
+        <p id="proposal-total" role="status">Total: R$ 0,00</p>
+        <div class="form-actions">
+          <button id="save-proposal" type="submit">Salvar rascunho</button>
+          <button id="cancel-proposal-edit" type="button" hidden>Cancelar edição</button>
+        </div>
+        <p id="proposal-message" role="status" aria-live="polite"></p>
+      </form>
+      <h3>Propostas recentes</h3>
+      <p id="proposal-list-message" role="status" aria-live="polite"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cliente</th><th>Proposta</th><th>Validade</th><th>Status</th><th>Total</th><th>Ações</th></tr></thead>
+          <tbody id="proposal-list"></tbody>
+        </table>
+      </div>
+      <section id="proposal-details" class="proposal-details" aria-labelledby="proposal-details-title" aria-live="polite" hidden>
+        <h3 id="proposal-details-title">Detalhes da proposta</h3>
+        <p id="proposal-details-message" role="status"></p>
+        <div id="proposal-details-content"></div>
+      </section>
+    </section>
+    <section class="panel" aria-labelledby="contract-title">
+      <p class="eyebrow">Formalização</p>
+      <h2 id="contract-title">Contratos</h2>
+      <p class="muted">Gere rascunhos a partir de propostas aceitas. O CRM não fornece aconselhamento jurídico nem registra assinaturas.</p>
+      <p id="contract-message" role="status" aria-live="polite"></p>
+      <form id="contract-form" hidden>
+        <input id="contract-id" name="id" type="hidden">
+        <label for="contract-name">Título do contrato <span aria-hidden="true">*</span></label>
+        <input id="contract-name" name="title" maxlength="160" required>
+        <label for="contract-effective-date">Início da vigência</label>
+        <input id="contract-effective-date" name="effectiveDate" type="date">
+        <label for="contract-end-date">Término da vigência</label>
+        <input id="contract-end-date" name="endDate" type="date">
+        <label for="contract-payment-terms">Condições de pagamento</label>
+        <textarea id="contract-payment-terms" name="paymentTerms" maxlength="1000" rows="3"></textarea>
+        <label for="contract-clauses">Cláusulas e condições</label>
+        <textarea id="contract-clauses" name="clauses" maxlength="10000" rows="8" placeholder="Insira o texto revisado pelo responsável. Nenhuma cláusula jurídica é gerada automaticamente."></textarea>
+        <div class="form-actions">
+          <button id="save-contract" type="submit">Salvar rascunho</button>
+          <button id="cancel-contract-edit" type="button">Cancelar edição</button>
+        </div>
+      </form>
+      <h3>Contratos cadastrados</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cliente</th><th>Contrato</th><th>Status</th><th>Valor</th><th>Ação</th></tr></thead>
+          <tbody id="contract-list"></tbody>
+        </table>
+      </div>
+      <section id="contract-details" class="proposal-details" aria-live="polite" hidden>
+        <h3>Detalhes do contrato</h3>
+        <p id="contract-details-message" role="status"></p>
+        <div id="contract-details-content"></div>
+      </section>
+    </section>
+    <section class="panel" aria-labelledby="finance-title">
+      <p class="eyebrow">Financeiro</p>
+      <h2 id="finance-title">Entradas e saídas</h2>
+      <p class="muted">Controle manual para consulta. Não substitui extrato bancário, conciliação ou escrituração contábil.</p>
+      <label for="finance-month">Mês de consulta</label>
+      <input id="finance-month" type="month">
+      <div class="finance-summary" aria-live="polite">
+        <p>Entradas: <strong id="finance-income">R$ 0,00</strong></p>
+        <p>Saídas: <strong id="finance-expenses">R$ 0,00</strong></p>
+        <p>Saldo do período: <strong id="finance-balance">R$ 0,00</strong></p>
+      </div>
+      <form id="finance-form">
+        <input id="finance-id" name="id" type="hidden">
+        <label for="finance-type">Tipo</label>
+        <select id="finance-type" name="type" required>
+          <option value="income">Entrada</option><option value="expense">Saída</option>
+        </select>
+        <label for="finance-description">Descrição</label>
+        <input id="finance-description" name="description" maxlength="160" required>
+        <label for="finance-category">Categoria</label>
+        <input id="finance-category" name="category" maxlength="80" required placeholder="Ex.: serviço, ferramenta, transporte">
+        <label for="finance-amount">Valor (R$)</label>
+        <input id="finance-amount" name="amount" type="number" min="0.01" max="99999999.99" step="0.01" required>
+        <label for="finance-date">Data</label>
+        <input id="finance-date" name="occurredOn" type="date" required>
+        <label for="finance-notes">Observações (opcional)</label>
+        <textarea id="finance-notes" name="notes" maxlength="1000" rows="2"></textarea>
+        <div class="form-actions">
+          <button id="save-finance" type="submit">Registrar lançamento</button>
+          <button id="cancel-finance-edit" type="button" hidden>Cancelar edição</button>
+        </div>
+        <p id="finance-message" role="status" aria-live="polite"></p>
+      </form>
+      <h3>Lançamentos do mês</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Ação</th></tr></thead>
+          <tbody id="finance-list"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="customer-list-title">
+      <p class="eyebrow">Carteira</p>
+      <h2 id="customer-list-title">Clientes cadastrados</h2>
+      <form id="customer-search-form" role="search">
+        <label for="customer-search">Buscar por nome, empresa, e-mail ou telefone</label>
+        <input id="customer-search" name="q" type="search" maxlength="120" autocomplete="off">
+        <label for="customer-status">Situação</label>
+        <select id="customer-status" name="status">
+          <option value="active">Ativos</option>
+          <option value="archived">Arquivados</option>
+          <option value="all">Todos</option>
+        </select>
+        <button id="search-customers" type="submit">Buscar</button>
+      </form>
+      <p id="customer-list-message" role="status" aria-live="polite"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Contato</th><th>Empresa</th><th>E-mail</th><th>Telefone</th><th>Ação</th></tr></thead>
+          <tbody id="customer-list"></tbody>
+        </table>
+      </div>
+      <nav class="pagination" aria-label="Paginação de clientes">
+        <button id="previous-customers" type="button" disabled>Anterior</button>
+        <span id="customer-page" aria-live="polite">Página 1</span>
+        <button id="next-customers" type="button" disabled>Próxima</button>
+      </nav>
+      <section id="customer-details" class="customer-details" aria-live="polite" hidden>
+        <h3>Detalhes do cliente</h3>
+        <div class="detail-actions">
+          <button id="edit-customer" type="button">Editar cadastro</button>
+          <button id="archive-customer" type="button">Arquivar cliente</button>
+          <button id="restore-customer" type="button" hidden>Restaurar cliente</button>
+        </div>
+        <dl id="customer-detail-fields"></dl>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

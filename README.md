@@ -1,26 +1,41 @@
 # FNSC-CRM
 
-CRM web application for an independent marketing and onboarding business. This repository will host the application, automated tests, and DevOps configuration for the academic MVP and its continued evolution.
+CRM web para uma empresa independente de marketing e onboarding. O MVP reúne frontend em HTML/CSS/JavaScript puro, API em Node.js/Express e banco MySQL.
 
-## Initial scope
+## O que já está implementado
 
-- Private administrator access
-- Customer records and service catalog
-- Proposals and PDF export
-- Contracts with revision history
-- Onboarding checklist and client activity history
-- Follow-up tasks
-- Manual income/expense records and monthly summaries
+- Acesso administrativo e perfil da empresa.
+- Cadastro, consulta, edição e arquivamento reversível de clientes.
+- Catálogo de serviços com edição.
+- Propostas em rascunho, edição, histórico de status e versão imprimível para salvar em PDF pelo navegador.
+- Contratos gerados a partir de propostas aceitas, com revisões, impressão e registro manual de status.
+- Lançamentos de entradas e saídas com consulta mensal.
+- Checklist de onboarding vinculado a contratos e histórico de interações/follow-ups por cliente.
 
-## Planned technology
+As funcionalidades F01–F18 estão agrupadas na branch de integração. O CI mais recente valida 35/35 testes contra MySQL 8, migrações e fluxos de API, a demonstração Docker e uma jornada ponta a ponta no Chromium (login, clientes, interações, serviços, proposta, contrato, onboarding, financeiro e logout). O resultado aprovado está no [GitHub Actions](https://github.com/devfnsc/FNSC-CRM/actions/runs/40003918241). A imagem da demonstração também executa o processo com usuário sem privilégios administrativos. O endpoint `/api/health` verifica também a conexão com o banco, sem expor detalhes de erro. Isso valida o MVP local; não significa que esteja publicado ou conectado a um banco de produção.
 
-- Frontend: semantic HTML, CSS, and vanilla JavaScript
-- Backend: Node.js and Express, exposed as a JSON API
-- Database: MySQL
-- Version control and CI: GitHub and GitHub Actions
+## Entrega ágil e DevOps
 
-Hosting and production deployment will be documented after we verify the service limits, security requirements, and data-privacy implications. Never commit credentials, `.env` files, or real customer/financial data.
+O processo Scrum/Kanban, backlog priorizado, três histórias de usuário e evidências DevOps estão em [docs/agile-devops-delivery.md](docs/agile-devops-delivery.md).
 
-## Development status
+## Ver a demonstração local
 
-The repository is being initialized. The first implementation milestone is F01 (administrator authentication), followed by the customer and service workflows from the approved Trello backlog.
+Com Docker Desktop aberto, execute `docker compose up --build` e acesse [http://127.0.0.1:3000](http://127.0.0.1:3000). A configuração cria um banco MySQL isolado e uma conta descartável, sem dados reais. Veja credenciais, limites e detalhes em [docs/local-demo.md](docs/local-demo.md). A imagem de produção e os pré-requisitos de hospedagem estão descritos em [docs/production-preparation.md](docs/production-preparation.md).
+
+Para desenvolvimento manual com Node.js e MySQL instalados, siga [docs/development.md](docs/development.md).
+
+Comandos de desenvolvimento e testes:
+
+```bash
+npm install
+npm run dev
+npm test
+```
+
+## CI, publicação e segurança
+
+O GitHub Actions instala as dependências e executa os testes em pushes para `main` e branches `feature/**`. Ainda não há deploy automático nem endereço público do CRM: a configuração de hospedagem, banco remoto, segredos, HTTPS e backups precisa ser feita antes de usar dados reais.
+
+Não existe cadastro público. O status “assinado” de um contrato é um registro manual, não uma assinatura digital. A impressão de propostas/contratos usa a função de impressão do navegador. Este MVP não substitui um sistema contábil ou orientação jurídica.
+
+Nunca publique arquivos `.env`, credenciais ou dados pessoais/financeiros de clientes.
