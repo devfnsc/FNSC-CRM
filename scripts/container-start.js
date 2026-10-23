@@ -38,6 +38,7 @@ async function prepareDemoDatabase() {
     const migrationsDir = path.join(root, "src/db/migrations");
     const files = fs.readdirSync(migrationsDir)
       .filter((file) => file.endsWith(".sql") && /^\d{3}_/u.test(file))
+      .sort();
 
     for (const name of files) {
       const [applied] = await pool.execute("SELECT name FROM schema_migrations WHERE name = ?", [name]);
