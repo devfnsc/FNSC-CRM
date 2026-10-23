@@ -88,6 +88,8 @@ async function main() {
     await page.locator("#contract-name").fill(contractTitle);
     await page.locator("#contract-payment-terms").fill("Pagamento mensal.");
     await page.locator("#contract-clauses").fill("Escopo validado pelo responsável.");
+    const contractId = await page.locator("#contract-id").evaluate((input) => input.value);
+    assert.ok(contractId, "contract edit form should retain its contract ID");
     await contractForm.locator("button[type=submit]").click();
     await contractForm.waitFor({ state: "hidden", timeout: 10000 }).catch(async () => {
       const contractId = await page.locator("#contract-id").evaluate((input) => input.value);
