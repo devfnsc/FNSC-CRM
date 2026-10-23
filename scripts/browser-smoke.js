@@ -34,6 +34,8 @@ async function main() {
     await page.getByRole("button", { name: "Entrar" }).click();
     await page.waitForURL("**/app");
     await page.getByRole("heading", { name: "Perfil da empresa" }).waitFor();
+    assert.equal(await page.locator("#contract-form").isVisible(), false,
+      "contract form should stay hidden until an accepted proposal is converted");
 
     await page.locator("#businessName").fill("FNSC QA " + runId);
     await page.locator("#company-form button[type=submit]").click();
