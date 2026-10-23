@@ -81,6 +81,9 @@ async function main() {
     await page.locator("#contract-payment-terms").fill("Pagamento mensal.");
     await page.locator("#contract-clauses").fill("Escopo validado pelo responsável.");
     await contractForm.locator("button[type=submit]").click();
+    await contractForm.waitFor({ state: "hidden", timeout: 10000 }).catch(async () => {
+      throw new Error("Contract draft was not saved: " + await page.locator("#contract-message").innerText());
+    });
     const contractRow = page.locator("#contract-list tr").filter({ hasText: contractTitle });
     await contractRow.waitFor();
     await contractRow.getByRole("button", { name: "Abrir" }).click();
