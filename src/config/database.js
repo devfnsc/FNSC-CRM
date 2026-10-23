@@ -63,7 +63,7 @@ function executeOn(client, sql, values = []) {
       affectedRows: result.rowCount,
       ...(returnsId && result.rows[0] ? { insertId: result.rows[0].id } : {})
     };
-    const isMutation = /^\\s*(?:INSERT|UPDATE|DELETE)\\b/iu.test(statement);
+    const isMutation = /^(?:INSERT|UPDATE|DELETE)\\b/iu.test(statement.trimStart());
     return isMutation ? [metadata, result.rows] : [result.rows, metadata];
   });
 }
