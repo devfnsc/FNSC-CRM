@@ -1,49 +1,50 @@
 const { Pool } = require("pg");
 
+const ID_TABLES = new Set([
+  "users", "company_profile", "customers", "services", "proposals", "proposal_items",
+  "proposal_status_history", "contracts", "contract_items", "contract_revisions",
+  "contract_status_history", "finance_transactions", "onboarding_tasks", "customer_activities"
+]);
+
 function buildPoolOptions(env = process.env) {
-  if (!env.DATABASE_URL) {
-    throw new Error("Missing required database setting: DATABASE_URL");
-  }
+  if (!env.DATABASE_URL) throw new Error("Missing required database setting: DATABASE_URL");
 
-  let connectionString;
+  let parsed;
   try {
-    const parsed = new URL(env.DATABASE_URL);
-    const isLocal = ["localhost", "127.0.0.1", "database"].includes(parsed.hostname);
-    parsed.searchParams.delete("sslmode");
-    parsed.searchParams.delete("sslrootcert");
-    connectionString = parsed.toString();
-
-    if (env.NODE_ENV === "production" && isLocal) {
-      throw new Error("Production DATABASE_URL cannot point to a local database.");
-    }
-
-    let ssl = false;
-    if (env.DATABASE_SSL !== "disable") {
-      ssl = env.DATABASE_SSL_CA
-        ? { ca: env.DATABASE_SSL_CA.replace(/\\n/g, "\n"), rejectUnauthorized: true }
-        : { rejectUnauthorized: true };
-    } else if (!isLocal && env.NODE_ENV === "production") {
-      throw new Error("TLS cannot be disabled for a production database.");
-    }
-
-    const max = Number(env.DB_POOL_MAX || 5);
-    if (!Number.isSafeInteger(max) || max < 1 || max > 20) {
-      throw new Error("DB_POOL_MAX must be an integer between 1 and 20.");
-    }
-
-    return {
-      connectionString,
-      ssl,
-      max,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
-      application_name: "fnsc-crm"
-    };
-  } catch (error) {
-    if (error.message.startsWith("Missing") || error.message.startsWith("Production") ||
-        error.message.startsWith("TLS") || error.message.startsWith("DB_POOL")) throw error;
+    parsed = new URL(env.DATABASE_URL);
+  } catch {
     throw new Error("DATABASE_URL must be a valid PostgreSQL connection URL.");
   }
+
+  const isLocal = ["localhost", "127.0.0.1", "database"].includes(parsed.hostname);
+  if (env.NODE_ENV === "production" && isLocal) {
+    throw new Error("Production DATABASE_URL cannot point to a local database.");
+  }
+  parsed.searchParams.delete("sslmode");
+  parsed.searchParams.delete("sslrootcert");
+
+  let ssl = false;
+  if (env.DATABASE_SSL !== "disable") {
+    ssl = env.DATABASE_SSL_CA
+      ? { ca: env.DATABASE_SSL_CA.replace(/\\n/g, "\n"), rejectUnauthorized: true }
+      : { rejectUnauthorized: true };
+  } else if (!isLocal && env.NODE_ENV === "production") {
+    throw new Error("TLS cannot be disabled for a production database.");
+  }
+
+  const max = Number(env.DB_POOL_MAX || 5);
+  if (!Number.isSafeInteger(max) || max < 1 || max > 20) {
+    throw new Error("DB_POOL_MAX must be an integer between 1 and 20.");
+  }
+
+  return {
+    connectionString: parsed.toString(),
+    ssl,
+    max,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+    application_name: "fnsc-crm"
+  };
 }
 
 function toPostgresSql(sql) {
@@ -51,28 +52,30 @@ function toPostgresSql(sql) {
   return sql.replace(/\?/gu, () => "$" + (++index));
 }
 
+function executeOn(client, sql, values = []) {
+  let statement = toPostgresSql(sql);
+  const match = statement.match(/^\s*INSERT\s+INTO\s+(\w+)/iu);
+  const returnsId = match && ID_TABLES.has(match[1].toLowerCase()) && !/\bRETURNING\b/iu.test(statement);
+  if (returnsId) statement += " RETURNING id";
+
+  return client.query(statement, values).then((result) => [
+    result.rows,
+    {
+      affectedRows: result.rowCount,
+      ...(returnsId && result.rows[0] ? { insertId: result.rows[0].id } : {})
+    }
+  ]);
+}
+
 function adaptClient(client) {
   return {
     query: (sql, values) => client.query(toPostgresSql(sql), values),
-    execute: async (sql, values = []) => executeOn(client, sql, values),
+    execute: (sql, values = []) => executeOn(client, sql, values),
     beginTransaction: () => client.query("BEGIN"),
     commit: () => client.query("COMMIT"),
     rollback: () => client.query("ROLLBACK"),
     release: () => client.release()
   };
-}
-
-async function executeOn(client, sql, values = []) {
-  let statement = toPostgresSql(sql);
-  const isInsert = /^\s*INSERT\s+INTO\b/iu.test(statement);
-  if (isInsert && !/\bRETURNING\b/iu.test(statement)) statement += " RETURNING id";
-
-  const result = await client.query(statement, values);
-  const metadata = {
-    affectedRows: result.rowCount,
-    ...(isInsert && result.rows[0] ? { insertId: result.rows[0].id } : {})
-  };
-  return [result.rows, metadata];
 }
 
 function createPool(env = process.env) {
