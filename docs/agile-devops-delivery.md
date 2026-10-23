@@ -85,19 +85,19 @@ Critérios de aceite:
 
 - Frontend: HTML, CSS e JavaScript sem framework.
 - Backend: Node.js 20 e Express 5, API REST.
-- Persistência: MySQL 8 e migrações SQL versionadas.
+- Persistência: PostgreSQL compatível com Supabase; esquema SQL idempotente versionado em `src/db/schema.sql`.
 - Versionamento: Git e GitHub; alterações do MVP agrupadas na PR [#19](https://github.com/devfnsc/FNSC-CRM/pull/19).
-- CI: GitHub Actions executa testes automatizados, integração contra MySQL 8, build da imagem Docker, smoke test local e jornada ponta a ponta no Chromium.
+- CI: GitHub Actions executa testes automatizados, integração contra PostgreSQL 16, build da imagem Docker, smoke test local e jornada ponta a ponta no Chromium.
 - Segurança básica: cabeçalhos Helmet, sessão HttpOnly/SameSite, limite de tentativas de login, validação de origem, segredos fora do repositório e container com usuário sem privilégios. A quantidade e o resultado dos testes devem ser conferidos na execução de CI vinculada ao commit entregue.
 - Infraestrutura local: Docker Compose provisiona a demonstração e um banco descartável; não é o banco de produção.
-- Monitoramento disponível: logs básicos do processo e endpoint `GET /api/health`. Esse endpoint confirma resposta da aplicação, não mede disponibilidade do MySQL nem substitui monitoramento de produção.
+- Monitoramento disponível: logs básicos do processo e endpoint `GET /api/health`. Esse endpoint confirma resposta da aplicação e conexão PostgreSQL, mas não substitui monitoramento de disponibilidade de produção.
 
 ## Situação do CD e limites
 
-A imagem já inicia o servidor normalmente, separada do bootstrap da demonstração. Porém, o CD ainda não está configurado: falta escolher o host e o serviço MySQL, cadastrar segredos no provedor e então criar/testar o deploy automático. A PR permanece em rascunho; não há endereço público ou banco remoto. Portanto, a evidência atual comprova CI e execução local, não publicação em produção.
+A imagem inicia o servidor normalmente, separada do bootstrap da demonstração. O Blueprint prepara Render Free e a conexão PostgreSQL/Supabase, mas deploy público depende de criar/configurar os recursos, guardar segredos no painel e validar health check e login. A migração PostgreSQL está em validação; até CI aprovada e deploy testado, a evidência não comprova publicação.
 
 O ambiente demonstrativo usa credenciais e dados descartáveis. Não registrar dados reais de clientes nem informações financeiras até configurar hospedagem, HTTPS, backups com teste de restauração, acesso ao banco e política de privacidade. Contratos e assinatura permanecem operações manuais; o CRM não substitui aconselhamento jurídico ou contábil.
 
 ## Evidência automatizada
 
-Última execução verificada em 23/10/2026: [GitHub Actions — CI aprovada](https://github.com/devfnsc/FNSC-CRM/actions/runs/39966994089). O relatório registrou 29 testes aprovados no job unitário/API, integração MySQL aprovada e demonstração ponta a ponta aprovada. Uma verificação é omitida no job unitário porque é executada separadamente no job MySQL.
+A versão MySQL anterior tinha CI e jornada de demonstração aprovadas. A branch de migração precisa gerar uma nova execução PostgreSQL antes de afirmar que a persistência PostgreSQL está validada. Consulte o [GitHub Actions](https://github.com/devfnsc/FNSC-CRM/actions) e registre o resultado correspondente ao commit entregue.
