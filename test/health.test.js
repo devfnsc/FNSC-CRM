@@ -25,6 +25,26 @@ test("health endpoint returns a healthy response without exposing secrets", asyn
   }
 });
 
+test("health endpoint reports unavailable without exposing database errors", async () => {
+  const app = createApp({
+    pool: { execute: async () => { throw new Error("database credentials leaked"); } },
+    sessionStore: new session.MemoryStore(),
+    env: {
+      APP_ORIGIN: "http://localhost:3000",
+      SESSION_SECRET: "test-only-session-secret-with-32-bytes",
+      NODE_ENV: "test"
+    }
+  });
+  const server = app.listen(0);
+  try {
+    const response = await fetch("http://127.0.0.1:" + server.address().port + "/api/health");
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { status: "unavailable" });
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
 test("protected dashboard rejects unauthenticated requests", async () => {
   const app = createApp({
     pool: { execute: async () => [[], []] },
