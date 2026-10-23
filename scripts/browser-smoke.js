@@ -134,7 +134,10 @@ async function main() {
     await page.locator("#finance-income").getByText(/1\.250,00/).waitFor();
 
     assert.deepEqual(pageErrors, [], "browser UI should not throw uncaught JavaScript errors");
-    console.log("Browser end-to-end passed: login, company profile, customer, contact history/follow-up, service, proposal lifecycle, contract/revisions/signature, onboarding task, and finance entry/summary.");
+    await page.locator("#logout").click();
+    await page.waitForURL(origin + "/");
+    assert.match(await page.locator("#login-form").getAttribute("id"), /login-form/u);
+    console.log("Browser end-to-end passed: login, company profile, customer, contact history/follow-up, service, proposal lifecycle, contract/revisions/signature, onboarding task, finance entry/summary, and logout.");
   } finally {
     await browser.close();
   }
