@@ -42,9 +42,9 @@ async function prepareDemoDatabase() {
     for (const name of files) {
       const [applied] = await pool.execute("SELECT name FROM schema_migrations WHERE name = ?", [name]);
       if (applied.length) continue;
-      const sql = fs.readFileSync(path.join(migrationsDir, name), "utf8").trim();
-      const statement = sql.endsWith(";") ? sql.slice(0, -1) : sql;
-      await pool.query(statement);
+      const sql = fs.readFileSync(path.join(migrationsDir, name), "utf8");
+      const statements = sql.split(";").map((statement) => statement.trim()).filter(Boolean);
+      for (const statement of statements) await pool.query(statement);
       await pool.execute("INSERT INTO schema_migrations (name) VALUES (?)", [name]);
       console.log("Applied migration:", name);
     }
