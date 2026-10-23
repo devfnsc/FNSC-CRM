@@ -17,9 +17,9 @@ Esta configuração é para demonstração acadêmica. Plano gratuito não signi
 2. O arquivo `render.yaml` prepara Docker, health check e variáveis necessárias. Não conecte a branch até a PR ser revisada e os checks passarem.
 3. Configure `DATABASE_URL` no painel do Render com a URI do Session pooler, nunca com uma chave `service_role` ou anon key.
 4. Gere `SESSION_SECRET` aleatório com ao menos 32 bytes no painel do host.
-5. Mantenha `DB_POOL_MAX=3) ou menor para respeitar a capacidade compartilhada do banco.
+5. Mantenha `DB_POOL_MAX=3` ou menor para respeitar a capacidade compartilhada do banco.
 6. Confirme `NODE_ENV=production`, proxy confiável e HTTPS. O Render fornece a origem pública usada pelo health check.
-7. Faça deploy e verifique `/api/health), login e criação/consulta de cliente sem usar dados reais.
+7. Faça deploy e verifique `/api/health`, login e criação/consulta de cliente sem usar dados reais.
 
 ## Limites e cuidados
 
