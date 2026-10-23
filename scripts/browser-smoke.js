@@ -60,6 +60,7 @@ async function main() {
     await page.locator("#proposal-customer").selectOption(await customerOption.getAttribute("value"));
     await page.locator("#proposal-name").fill(proposalTitle);
     const serviceSelect = page.locator("#proposal-item-list .proposal-service").first();
+    await serviceSelect.waitFor({ state: "attached" });
     const serviceOptionValue = await serviceSelect.locator("option")
       .filter({ hasText: serviceName }).getAttribute("value");
     assert.ok(serviceOptionValue, "new service should be selectable in a proposal");
