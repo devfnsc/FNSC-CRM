@@ -111,18 +111,19 @@ async function main() {
     await contractDetails.getByRole("button", { name: "Registrar como assinado" }).click();
 
     await page.getByRole("heading", { name: "Onboarding do cliente" }).waitFor();
-    const onboardingForm = page.locator(".onboarding-form");
+    const onboardingSection = page.locator(".onboarding-section");
+    const onboardingForm = onboardingSection.locator(".onboarding-form");
     await onboardingForm.locator("[name=title]").fill(taskTitle);
     await onboardingForm.locator("[name=details]").fill("Validar acesso e alinhar próximos passos.");
     await onboardingForm.getByRole("button", { name: "Adicionar tarefa" }).click();
-    await onboardingForm.locator(".onboarding-task").filter({ hasText: taskTitle }).waitFor({ timeout: 10000 }).catch(async () => {
+    await onboardingSection.locator(".onboarding-task").filter({ hasText: taskTitle }).waitFor({ timeout: 10000 }).catch(async () => {
       const onboardingMessage = await page.locator(".onboarding-section [role=status]").innerText();
       throw new Error("Onboarding task was not rendered: " + onboardingMessage +
         " (response=" + onboardingResponseInfo + ")");
     });
-    const taskStatus = onboardingForm.getByLabel("Status da tarefa " + taskTitle);
+    const taskStatus = onboardingSection.getByLabel("Status da tarefa " + taskTitle);
     await taskStatus.selectOption("done");
-    await onboardingForm.locator(".onboarding-column").filter({ hasText: "Concluída" })
+    await onboardingSection.locator(".onboarding-column").filter({ hasText: "Concluída" })
       .getByText(taskTitle).waitFor();
 
     await page.locator("#finance-description").fill(transactionDescription);
