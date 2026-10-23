@@ -1,19 +1,21 @@
 const session = require("express-session");
-const MySQLStore = require("express-mysql-session")(session);
+const connectPgSimple = require("connect-pg-simple");
 const { createPool } = require("./config/database");
 const { createApp } = require("./app");
 
 async function startServer({ env = process.env, logger = console, processRef = process } = {}) {
   const pool = createPool(env);
-  const sessionStore = new MySQLStore({
-    clearExpired: true,
-    checkExpirationInterval: 15 * 60 * 1000,
-    expiration: 8 * 60 * 60 * 1000,
-    createDatabaseTable: true
-  }, pool);
+  const PgSessionStore = connectPgSimple(session);
+  const sessionStore = new PgSessionStore({
+    pool: pool.nativePool,
+    tableName: "user_sessions",
+    createTableIfMissing: false,
+    pruneSessionInterval: 15 * 60,
+    ttl: 8 * 60 * 60
+  });
 
   try {
-    await sessionStore.onReady();
+    await pool.query("SELECT 1");
     const app = createApp({ pool, sessionStore, env });
     const port = Number(env.PORT || 3000);
     const server = app.listen(port, () => logger.log("FNSC-CRM listening on port " + port));
@@ -22,13 +24,11 @@ async function startServer({ env = process.env, logger = console, processRef = p
     const shutdown = () => {
       if (isShuttingDown) return;
       isShuttingDown = true;
-
       server.close(async (error) => {
         if (error) {
           logger.error("HTTP server shutdown failed:", error.message);
           processRef.exitCode = 1;
         }
-
         try {
           await sessionStore.close();
           await pool.end();
