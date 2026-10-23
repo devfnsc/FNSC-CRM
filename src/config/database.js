@@ -58,13 +58,14 @@ function executeOn(client, sql, values = []) {
   const returnsId = match && ID_TABLES.has(match[1].toLowerCase()) && !/\bRETURNING\b/iu.test(statement);
   if (returnsId) statement += " RETURNING id";
 
-  return client.query(statement, values).then((result) => [
-    result.rows,
-    {
+  return client.query(statement, values).then((result) => {
+    const metadata = {
       affectedRows: result.rowCount,
       ...(returnsId && result.rows[0] ? { insertId: result.rows[0].id } : {})
-    }
-  ]);
+    };
+    const isMutation = /^\\s*(?:INSERT|UPDATE|DELETE)\\b/iu.test(statement);
+    return isMutation ? [metadata, result.rows] : [result.rows, metadata];
+  });
 }
 
 function adaptClient(client) {
