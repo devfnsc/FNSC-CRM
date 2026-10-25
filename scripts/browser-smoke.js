@@ -39,6 +39,11 @@ async function main() {
     await page.locator("#password").fill(password);
     await page.getByRole("button", { name: "Entrar" }).click();
     await page.waitForURL("**/app");
+    await page.getByRole("heading", { name: "Visão geral" }).waitFor();
+    await page.locator("#theme-toggle").click();
+    assert.equal(await page.locator("html").getAttribute("data-theme"), "dark", "theme toggle should activate dark mode");
+    await page.locator("#theme-toggle").click();
+    await page.locator("[data-view-target=company]").click();
     await page.getByRole("heading", { name: "Perfil da empresa" }).waitFor();
     assert.equal(await page.locator("#contract-form").isVisible(), false,
       "contract form should stay hidden until an accepted proposal is converted");
@@ -50,6 +55,7 @@ async function main() {
       assert.match(await page.locator("#company-message").innerText(), /salvo|atualizado/i);
     });
 
+    await page.locator("[data-view-target=customers]").click();
     await page.locator("#customer-name").fill(customerName);
     await page.locator("#customer-company").fill("Empresa QA");
     await page.locator("#customer-email").fill("qa-" + runId + "@example.test");
@@ -65,12 +71,14 @@ async function main() {
     await page.getByRole("button", { name: "Marcar acompanhamento como concluído" }).click();
     await page.getByText(/Próximo acompanhamento:.*Concluído/).waitFor();
 
+    await page.locator("[data-view-target=services]").click();
     await page.locator("#service-name").fill(serviceName);
     await page.locator("#service-description").fill("Serviço de validação ponta a ponta.");
     await page.locator("#service-price").fill("1250");
     await page.locator("#service-form button[type=submit]").click();
     await page.locator("#service-list").getByText(serviceName).waitFor();
 
+    await page.locator("[data-view-target=proposals]").click();
     const customerOption = page.locator("#proposal-customer option").filter({ hasText: customerName });
     await customerOption.waitFor({ state: "attached" });
     await page.locator("#proposal-customer").selectOption(await customerOption.getAttribute("value"));
@@ -91,6 +99,7 @@ async function main() {
     await proposalDetails.getByRole("button", { name: "Registrar aceite" }).click();
     await proposalDetails.getByRole("button", { name: "Criar contrato em rascunho" }).click();
 
+    await page.locator("[data-view-target=contracts]").click();
     const contractForm = page.locator("#contract-form");
     await contractForm.waitFor({ state: "visible" });
     await page.locator("#contract-name").fill(contractTitle);
@@ -110,8 +119,13 @@ async function main() {
     const contractDetails = page.locator("#contract-details-content");
     await contractDetails.getByRole("button", { name: "Registrar como assinado" }).click();
 
-    await page.getByRole("heading", { name: "Onboarding do cliente" }).waitFor();
-    const onboardingSection = page.locator(".onboarding-section");
+    await page.locator("[data-view-target=onboarding]").click();
+    const onboardingSelect = page.locator("#onboarding-contract");
+    const signedContractOption = onboardingSelect.locator("option").filter({ hasText: contractTitle });
+    await signedContractOption.waitFor({ state: "attached" });
+    await onboardingSelect.selectOption(await signedContractOption.getAttribute("value"));
+    const onboardingSection = page.locator("#onboarding-workspace .onboarding-section");
+    await onboardingSection.getByRole("heading", { name: "Onboarding do cliente" }).waitFor();
     const onboardingForm = onboardingSection.locator(".onboarding-form");
     await onboardingForm.locator("[name=title]").fill(taskTitle);
     await onboardingForm.locator("[name=details]").fill("Validar acesso e alinhar próximos passos.");
@@ -126,6 +140,7 @@ async function main() {
     await onboardingSection.locator(".onboarding-column").filter({ hasText: "Concluída" })
       .getByText(taskTitle).waitFor();
 
+    await page.locator("[data-view-target=finance]").click();
     await page.locator("#finance-description").fill(transactionDescription);
     await page.locator("#finance-category").fill("Serviços");
     await page.locator("#finance-amount").fill("1250");
