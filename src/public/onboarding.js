@@ -96,15 +96,16 @@ async function saveTaskStatus(task, status, contract, section, list, message, fo
 
 window.addEventListener("contract:opened", async (event) => {
   const contract = event.detail;
-  const host = document.querySelector("#contract-details-content");
-  if (!host) return;
+  const hosts = [document.querySelector("#contract-details-content"), document.querySelector("#onboarding-workspace")].filter(Boolean);
+  for (const host of hosts) {
+    host.querySelectorAll(".onboarding-section").forEach((item) => item.remove());
   const section = document.createElement("section");
   section.className = "onboarding-section";
   onboardingText(section, "h5", "Onboarding do cliente");
   if (contract.status !== "signed") {
     onboardingText(section, "p", "O checklist fica disponível após registrar este contrato como assinado.");
     host.append(section);
-    return;
+    continue;
   }
   onboardingText(section, "p", "Acompanhe as próximas etapas do atendimento. Este checklist é manual.");
   const form = document.createElement("form");
@@ -164,4 +165,57 @@ window.addEventListener("contract:opened", async (event) => {
     }
   });
   await loadOnboardingTasks(contract, section, list, message, form);
+  }
+});
+
+async function loadOnboardingContractOptions() {
+  const select = document.querySelector("#onboarding-contract");
+  const message = document.querySelector("#onboarding-page-message");
+  if (!select || !message) return;
+  try {
+    const response = await fetch("/api/contracts", { credentials: "same-origin", cache: "no-store" });
+    if (response.status === 401) return window.location.assign("/");
+    if (!response.ok) throw new Error("contracts_load_failed");
+    const { contracts } = await response.json();
+    const signed = contracts.filter((contract) => contract.status === "signed");
+    select.replaceChildren();
+    const empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = signed.length ? "Selecione um contrato" : "Nenhum contrato assinado";
+    select.append(empty);
+    for (const contract of signed) {
+      const option = document.createElement("option");
+      option.value = contract.id;
+      option.textContent = (contract.customerName || "Cliente") + " — " + contract.title;
+      select.append(option);
+    }
+    message.textContent = signed.length ? "Checklist manual por contrato." : "O onboarding fica disponível após registrar um contrato como assinado.";
+  } catch (_error) {
+    message.textContent = "Não foi possível carregar os contratos. Tente novamente.";
+    message.dataset.state = "error";
+  }
+}
+
+document.querySelector("#onboarding-contract")?.addEventListener("change", async (event) => {
+  const id = event.currentTarget.value;
+  const message = document.querySelector("#onboarding-page-message");
+  const workspace = document.querySelector("#onboarding-workspace");
+  workspace?.replaceChildren();
+  if (!id) return;
+  message.textContent = "Abrindo onboarding…";
+  try {
+    const response = await fetch("/api/contracts/" + encodeURIComponent(id), { credentials: "same-origin" });
+    if (response.status === 401) return window.location.assign("/");
+    if (!response.ok) throw new Error("contract_load_failed");
+    const { contract } = await response.json();
+    message.textContent = "";
+    window.dispatchEvent(new CustomEvent("contract:opened", { detail: contract }));
+  } catch (_error) {
+    message.textContent = "Não foi possível abrir esse onboarding.";
+    message.dataset.state = "error";
+  }
+});
+
+window.addEventListener("crm:view-changed", (event) => {
+  if (event.detail?.view === "onboarding") loadOnboardingContractOptions();
 });
