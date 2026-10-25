@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>FNSC-CRM | Área administrativa</title>
   <link rel="stylesheet" href="/app.css">
   <script src="/company-profile.js" defer></script>
@@ -14,15 +15,78 @@
   <script src="/finance.js" defer></script>
   <script src="/proposals.js" defer></script>
   <script src="/app.js" defer></script>
+  <script src="/navigation.js" defer></script>
+  <script src="/dashboard.js" defer></script>
 </head>
 <body class="app-page">
   <header class="app-header">
-    <a class="brand" href="/app">FNSC-CRM</a>
-    <button id="logout" type="button">Sair</button>
+    <a class="brand" href="/app" aria-label="FNSC CRM, início">FNSC <span>CRM</span></a>
+    <div class="header-actions">
+      <button id="theme-toggle" class="button-secondary" type="button" aria-pressed="false">Ativar modo escuro</button>
+      <button id="logout" class="button-secondary" type="button">Sair</button>
+    </div>
     <p id="logout-message" role="status" aria-live="polite"></p>
   </header>
-  <main class="app-content">
-    <section class="panel" aria-labelledby="company-title">
+  <div class="app-shell">
+    <aside class="app-sidebar">
+      <p class="sidebar-label">ÁREA DE TRABALHO</p>
+      <nav class="primary-navigation" aria-label="Navegação principal">
+        <button type="button" data-view-target="overview" aria-current="page">Visão geral</button>
+        <button type="button" data-view-target="customers">Clientes</button>
+        <button type="button" data-view-target="services">Serviços</button>
+        <button type="button" data-view-target="proposals">Propostas</button>
+        <button type="button" data-view-target="contracts">Contratos</button>
+        <button type="button" data-view-target="finance">Financeiro</button>
+        <button type="button" data-view-target="company">Empresa</button>
+      </nav>
+      <p class="sidebar-note">Seus dados ficam protegidos pela sua sessão.</p>
+    </aside>
+    <main id="app-content" class="app-content">
+      <section class="dashboard-view" data-crm-view="overview" aria-labelledby="current-view-title">
+        <div class="page-heading">
+          <div><p class="eyebrow">RESUMO DO NEGÓCIO</p><h1 id="current-view-title">Visão geral</h1>
+          <p id="current-view-description" class="muted">Acompanhe os principais números e retome seu trabalho.</p></div>
+          <button type="button" class="button-secondary" data-dashboard-refresh>Atualizar análise</button>
+        </div>
+        <p id="dashboard-message" class="dashboard-message" role="status" aria-live="polite">Carregando informações…</p>
+        <section class="metric-grid" aria-label="Indicadores do negócio">
+          <article class="metric-card"><span>Clientes ativos</span><strong id="metric-customers">—</strong><small id="metric-customers-note">Acompanhe sua carteira</small></article>
+          <article class="metric-card"><span>Serviços cadastrados</span><strong id="metric-services">—</strong><small>Disponíveis para propostas</small></article>
+          <article class="metric-card"><span>Propostas em aberto</span><strong id="metric-proposals">—</strong><small id="metric-proposals-note">Rascunhos e enviadas</small></article>
+          <article class="metric-card"><span>Contratos</span><strong id="metric-contracts">—</strong><small>Propostas formalizadas</small></article>
+        </section>
+        <section class="dashboard-grid" aria-label="Análises do período">
+          <article class="dashboard-card finance-card">
+            <div class="card-heading"><div><p class="eyebrow">FINANCEIRO</p><h2>Movimentação do mês</h2></div>
+              <label class="month-filter" for="dashboard-month">Período</label><input id="dashboard-month" type="month"></div>
+            <div class="finance-summary">
+              <p>Entradas <strong id="dashboard-income">—</strong></p>
+              <p>Saídas <strong id="dashboard-expenses">—</strong></p>
+              <p class="balance-line">Saldo do período <strong id="dashboard-balance">—</strong></p>
+            </div>
+            <button type="button" class="text-action" data-view-link="finance">Abrir financeiro →</button>
+          </article>
+          <article class="dashboard-card">
+            <p class="eyebrow">COMERCIAL</p><h2>Status das propostas</h2>
+            <ul class="status-list">
+              <li><span>Rascunho</span><strong id="status-draft">—</strong></li>
+              <li><span>Enviada</span><strong id="status-sent">—</strong></li>
+              <li><span>Aceita</span><strong id="status-accepted">—</strong></li>
+              <li><span>Recusada</span><strong id="status-rejected">—</strong></li>
+            </ul>
+            <button type="button" class="text-action" data-view-link="proposals">Ver propostas →</button>
+          </article>
+        </section>
+        <section class="dashboard-card quick-actions" aria-labelledby="quick-actions-title">
+          <div><p class="eyebrow">ATALHOS</p><h2 id="quick-actions-title">O que você precisa fazer?</h2></div>
+          <div class="quick-action-buttons">
+            <button type="button" data-view-link="customers">Cadastrar cliente</button>
+            <button type="button" class="button-secondary" data-view-link="proposals">Criar proposta</button>
+            <button type="button" class="button-secondary" data-view-link="finance">Registrar movimentação</button>
+          </div>
+        </section>
+      </section>
+    <section class="panel" data-crm-view="company" aria-labelledby="company-title" hidden>
       <p class="eyebrow">Configurações</p>
       <h1 id="company-title">Perfil da empresa</h1>
       <p class="muted">Esses dados poderão aparecer nas propostas e nos contratos.</p>
@@ -48,7 +112,7 @@
         <p id="company-message" role="status" aria-live="polite"></p>
       </form>
     </section>
-    <section class="panel" aria-labelledby="customer-form-title">
+    <section class="panel" data-crm-view="customers" aria-labelledby="customer-form-title" hidden>
       <p class="eyebrow">Relacionamento</p>
       <h2 id="customer-form-title">Cadastrar cliente</h2>
       <p class="muted">Informe ao menos um meio de contato. Não registre senhas ou dados de pagamento nas observações.</p>
@@ -71,7 +135,7 @@
         <p id="customer-message" role="status" aria-live="polite"></p>
       </form>
     </section>
-    <section class="panel" aria-labelledby="service-title">
+    <section class="panel" data-crm-view="services" aria-labelledby="service-title" hidden>
       <p class="eyebrow">Portfólio</p>
       <h2 id="service-title">Serviços oferecidos</h2>
       <p class="muted">Cadastre os serviços para reutilizá-los em futuras propostas. Valor de referência é opcional.</p>
@@ -98,7 +162,7 @@
         </table>
       </div>
     </section>
-    <section class="panel" aria-labelledby="proposal-title">
+    <section class="panel" data-crm-view="proposals" aria-labelledby="proposal-title" hidden>
       <p class="eyebrow">Comercial</p>
       <h2 id="proposal-title">Nova proposta</h2>
       <p class="muted">Crie um rascunho com serviços e valores negociados. A proposta ainda não é enviada ao cliente.</p>
@@ -140,7 +204,7 @@
         <div id="proposal-details-content"></div>
       </section>
     </section>
-    <section class="panel" aria-labelledby="contract-title">
+    <section class="panel" data-crm-view="contracts" aria-labelledby="contract-title" hidden>
       <p class="eyebrow">Formalização</p>
       <h2 id="contract-title">Contratos</h2>
       <p class="muted">Gere rascunhos a partir de propostas aceitas. O CRM não fornece aconselhamento jurídico nem registra assinaturas.</p>
@@ -175,7 +239,7 @@
         <div id="contract-details-content"></div>
       </section>
     </section>
-    <section class="panel" aria-labelledby="finance-title">
+    <section class="panel" data-crm-view="finance" aria-labelledby="finance-title" hidden>
       <p class="eyebrow">Financeiro</p>
       <h2 id="finance-title">Entradas e saídas</h2>
       <p class="muted">Controle manual para consulta. Não substitui extrato bancário, conciliação ou escrituração contábil.</p>
@@ -216,7 +280,7 @@
         </table>
       </div>
     </section>
-    <section class="panel" aria-labelledby="customer-list-title">
+    <section class="panel" data-crm-view="customers" aria-labelledby="customer-list-title" hidden>
       <p class="eyebrow">Carteira</p>
       <h2 id="customer-list-title">Clientes cadastrados</h2>
       <form id="customer-search-form" role="search">
@@ -253,5 +317,6 @@
       </section>
     </section>
   </main>
+  </div>
 </body>
 </html>
