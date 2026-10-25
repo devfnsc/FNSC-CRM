@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: fnsc-crm-demo
+    runtime: docker
+    plan: free
+    region: virginia
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: DB_POOL_MAX
+        value: "3"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
