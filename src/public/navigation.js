@@ -22,6 +22,7 @@ function showCrmView(name, options = {}) {
   }
   if (pageTitle) pageTitle.textContent = viewDescriptions[name][0];
   if (pageDescription) pageDescription.textContent = viewDescriptions[name][1];
+  document.querySelector("[data-overview-only]")?.toggleAttribute("hidden", name !== "overview");
   document.title = viewDescriptions[name][0] + " | FNSC-CRM";
   if (options.updateHash && location.hash !== "#" + name) {
     history.replaceState(null, "", "#" + name);
@@ -35,7 +36,7 @@ for (const button of viewButtons) {
 for (const link of document.querySelectorAll("[data-view-link]")) {
   link.addEventListener("click", () => showCrmView(link.dataset.viewLink, { updateHash: true }));
 }
-window.addEventListener("hashchange", () => showCrmView(location.hash.slice(1)));
+window.addEventListener("hashchange", () => showCrmView(location.hash.slice(1), { updateHash: true }));
 showCrmView(location.hash.slice(1) || "overview");
 
 const themeToggle = document.querySelector("#theme-toggle");
