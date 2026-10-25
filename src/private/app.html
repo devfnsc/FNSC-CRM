@@ -36,18 +36,19 @@
         <button type="button" data-view-target="services">Serviços</button>
         <button type="button" data-view-target="proposals">Propostas</button>
         <button type="button" data-view-target="contracts">Contratos</button>
+        <button type="button" data-view-target="onboarding">Onboarding</button>
         <button type="button" data-view-target="finance">Financeiro</button>
         <button type="button" data-view-target="company">Empresa</button>
       </nav>
       <p class="sidebar-note">Seus dados ficam protegidos pela sua sessão.</p>
     </aside>
     <main id="app-content" class="app-content">
-      <section class="dashboard-view" data-crm-view="overview" aria-labelledby="current-view-title">
-        <div class="page-heading">
-          <div><p class="eyebrow">RESUMO DO NEGÓCIO</p><h1 id="current-view-title">Visão geral</h1>
-          <p id="current-view-description" class="muted">Acompanhe os principais números e retome seu trabalho.</p></div>
-          <button type="button" class="button-secondary" data-dashboard-refresh>Atualizar análise</button>
-        </div>
+      <div class="page-heading">
+        <div><p class="eyebrow">FNSC CRM</p><h1 id="current-view-title">Visão geral</h1>
+        <p id="current-view-description" class="muted">Acompanhe os principais números e retome seu trabalho.</p></div>
+        <button type="button" class="button-secondary" data-dashboard-refresh>Atualizar análise</button>
+      </div>
+      <section class="dashboard-view" data-crm-view="overview" aria-label="Resumo do negócio">
         <p id="dashboard-message" class="dashboard-message" role="status" aria-live="polite">Carregando informações…</p>
         <section class="metric-grid" aria-label="Indicadores do negócio">
           <article class="metric-card"><span>Clientes ativos</span><strong id="metric-customers">—</strong><small id="metric-customers-note">Acompanhe sua carteira</small></article>
@@ -238,6 +239,15 @@
         <p id="contract-details-message" role="status"></p>
         <div id="contract-details-content"></div>
       </section>
+    </section>
+    <section class="panel onboarding-page" data-crm-view="onboarding" aria-labelledby="onboarding-title" hidden>
+      <p class="eyebrow">Atendimento</p>
+      <h2 id="onboarding-title">Onboarding de clientes</h2>
+      <p class="muted">Selecione um contrato assinado para organizar as etapas iniciais do atendimento.</p>
+      <label for="onboarding-contract">Contrato assinado</label>
+      <select id="onboarding-contract"><option value="">Carregando contratos…</option></select>
+      <p id="onboarding-page-message" role="status" aria-live="polite"></p>
+      <div id="onboarding-workspace"></div>
     </section>
     <section class="panel" data-crm-view="finance" aria-labelledby="finance-title" hidden>
       <p class="eyebrow">Financeiro</p>
