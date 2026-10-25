@@ -5,7 +5,8 @@ const viewDescriptions = {
   customers: ["Clientes", "Organize contatos, empresas e histórico de relacionamento."],
   services: ["Serviços", "Mantenha o catálogo que será usado nas propostas."],
   proposals: ["Propostas", "Crie, acompanhe e atualize suas propostas comerciais."],
-  contracts: ["Contratos", "Revise contratos, versões e tarefas de onboarding."],
+  contracts: ["Contratos", "Revise contratos e versões."],
+  onboarding: ["Onboarding", "Organize as etapas iniciais de atendimento de cada cliente."],
   finance: ["Financeiro", "Consulte entradas, saídas e o saldo de cada mês."],
   company: ["Perfil da empresa", "Mantenha os dados usados em propostas e contratos."]
 };
