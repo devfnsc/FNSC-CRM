@@ -54,7 +54,7 @@ async function refreshDashboard(force = false) {
   else dashboardSet("metric-services", "—");
   if (proposals) {
     const counts = { draft: 0, sent: 0, accepted: 0, rejected: 0 };
-    for (const proposal of proposals.proposals) if (Object.hasOwn(counts, proposal.status)) counts[proposal.status] += 1;
+    for (const proposal of proposals.proposals) if (Object.prototype.hasOwnProperty.call(counts, proposal.status)) counts[proposal.status] += 1;
     dashboardSet("metric-proposals", String(counts.draft + counts.sent));
     dashboardSet("metric-proposals-note", "Até " + proposals.proposals.length + " propostas recentes");
     for (const [status, count] of Object.entries(counts)) dashboardSet("status-" + status, String(count));
