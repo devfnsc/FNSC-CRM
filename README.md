@@ -1,26 +1,35 @@
 # FNSC-CRM
 
-CRM web application for an independent marketing and onboarding business. This repository will host the application, automated tests, and DevOps configuration for the academic MVP and its continued evolution.
+CRM web para uma empresa independente de marketing e onboarding. O MVP reúne frontend em HTML/CSS/JavaScript puro, API em Node.js/Express e PostgreSQL compatível com Supabase.
 
-## Initial scope
+## MVP implementado
 
-- Private administrator access
-- Customer records and service catalog
-- Proposals and PDF export
-- Contracts with revision history
-- Onboarding checklist and client activity history
-- Follow-up tasks
-- Manual income/expense records and monthly summaries
+- Acesso administrativo e perfil da empresa.
+- Cadastro, consulta, edição e arquivamento reversível de clientes.
+- Catálogo de serviços.
+- Propostas, impressão/salvamento como PDF pelo navegador e histórico de status.
+- Contratos com revisões, impressão e registro manual de status.
+- Lançamentos financeiros manuais e resumo mensal.
+- Checklist de onboarding e histórico de interações/follow-ups.
 
-## Planned technology
+As features F01–F18 estão integradas na branch de MVP. A migração PostgreSQL/Supabase está em validação nesta branch. O CRM não está publicado ainda; veja [docs/supabase-free-deploy.md](docs/supabase-free-deploy.md) para preparar banco e hospedagem sem enviar segredos ao repositório.
 
-- Frontend: semantic HTML, CSS, and vanilla JavaScript
-- Backend: Node.js and Express, exposed as a JSON API
-- Database: MySQL
-- Version control and CI: GitHub and GitHub Actions
+## Executar a demonstração local
 
-Hosting and production deployment will be documented after we verify the service limits, security requirements, and data-privacy implications. Never commit credentials, `.env` files, or real customer/financial data.
+Com Docker Desktop:
 
-## Development status
+```bash
+docker compose up --build
+```
 
-The repository is being initialized. The first implementation milestone is F01 (administrator authentication), followed by the customer and service workflows from the approved Trello backlog.
+Acesse http://127.0.0.1:3000. A demonstração usa PostgreSQL descartável, fica vinculada ao computador local e contém apenas uma conta fictícia. Não use os dados da demonstração como dados reais.
+
+Para configurar PostgreSQL localmente e criar conta administrativa, consulte [docs/development.md](docs/development.md). O banco Supabase deve receber o esquema versionado antes do deploy.
+
+## Qualidade e DevOps
+
+GitHub Actions executa testes unitários, integração contra PostgreSQL, build da demonstração Docker e fluxo de navegador no Chromium. A imagem roda como usuário sem privilégios; sessões ficam em tabela PostgreSQL; o endpoint `GET /api/health` verifica aplicação e banco.
+
+O planejamento Scrum/Kanban, backlog e histórias de usuário estão em [docs/agile-devops-delivery.md](docs/agile-devops-delivery.md).
+
+Este MVP não possui cadastro público, assinatura eletrônica, integração bancária ou função contábil. O status de contrato assinado é registrado manualmente. Não publique credenciais ou dados pessoais/financeiros de clientes.
