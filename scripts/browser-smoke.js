@@ -44,7 +44,7 @@ async function main() {
     assert.equal(await page.locator("html").getAttribute("data-theme"), "dark", "theme toggle should activate dark mode");
     await page.locator("#theme-toggle").click();
     await page.locator("[data-view-target=company]").click();
-    await page.getByRole("heading", { name: "Perfil da empresa" }).waitFor();
+    await page.locator("#company-title").waitFor({ state: "visible" });
     assert.equal(await page.locator("#contract-form").isVisible(), false,
       "contract form should stay hidden until an accepted proposal is converted");
 
